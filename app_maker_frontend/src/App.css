@@ -1,0 +1,211 @@
+#root {
+  max-width: 1400px; /* Augmente légèrement la largeur pour plus d'espace */
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
+}
+
+.App {
+  font-family: Arial, sans-serif;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-height: 90vh; /* Permet à l'application de prendre une bonne partie de la hauteur */
+}
+
+h1 {
+  font-size: 2.5em;
+  line-height: 1.1;
+  color: #333;
+  margin-bottom: 20px;
+}
+
+h2 {
+  font-size: 1.3em; /* Légèrement plus petit pour les sous-titres */
+  color: #555;
+  margin-bottom: 10px;
+  text-align: left;
+}
+
+/* Conteneur principal pour les deux colonnes */
+/* Conteneur principal pour les deux colonnes */
+.main-content {
+  display: flex;
+  flex-direction: row; /* Les panneaux sont côte à côte */
+  gap: 20px;
+  flex-grow: 1; /* Permet au contenu de s'étirer */
+  min-height: calc(90vh - 100px); /* Ajuste la hauteur minimale des panneaux */
+}
+
+/* Panneau de Gauche */
+.left-panel {
+  display: flex;
+  flex-direction: column;
+  flex: 1; /* Prend 1 part sur 2 (donc 50% de la largeur) */
+  gap: 20px;
+}
+
+.llm-response-section {
+  flex: 3; /* Prend 3/5 de la hauteur du panneau gauche */
+  background-color: #e6f7ff; /* Couleur plus claire pour cette section */
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  text-align: left;
+  display: flex; /* Utilise flex pour que le textarea prenne la hauteur */
+  flex-direction: column;
+  min-height: 0; /* Important pour que flex fonctionne correctement avec un flex-basis */
+}
+
+.prompt-section {
+  flex: 2; /* Prend 2/5 de la hauteur du panneau gauche */
+  background-color: #f0f0f0;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  text-align: left;
+  display: flex; /* Utilise flex pour que le textarea prenne la hauteur */
+  flex-direction: column;
+  min-height: 0; /* Important pour que flex fonctionne correctement avec un flex-basis */
+}
+
+/* Panneau de Droite */
+.right-panel {
+  display: flex;
+  flex-direction: column;
+  flex: 1; /* Prend 1 part sur 2 (donc 50% de la largeur) */
+  gap: 20px;
+  background-color: #f8f8f8;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.view-selector {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.view-selector button {
+  background-color: #607d8b; /* Couleur pour les boutons de vue */
+  color: white;
+  padding: 8px 15px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 0.9em;
+  transition: background-color 0.3s ease;
+}
+
+.view-selector button:hover:not(:disabled) {
+  background-color: #455a64;
+}
+
+.view-selector button.active {
+  background-color: #4CAF50; /* Couleur active */
+}
+
+/* Vues Code et Preview */
+.code-view, .preview-view {
+  flex-grow: 1; /* Permet à la vue de prendre l'espace restant */
+  display: flex;
+  flex-direction: column;
+  background-color: #ffffff;
+  padding: 15px;
+  border-radius: 8px;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.preview-placeholder {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  color: #888;
+  border: 2px dashed #ccc;
+  border-radius: 5px;
+  padding: 20px;
+  text-align: center;
+}
+
+.preview-placeholder p {
+  margin: 5px 0;
+}
+
+/* Terminal (toujours visible) */
+.terminal-section {
+  flex-shrink: 0; /* Ne rétrécit pas */
+  background-color: #333; /* Fond sombre pour le terminal */
+  color: #00ff00; /* Texte vert pour le terminal */
+  padding: 15px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  text-align: left;
+  overflow-y: auto; /* Permet de scroller si le contenu est trop grand */
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.85em;
+  white-space: pre-wrap; /* Maintient les sauts de ligne */
+  min-height: 150px; /* Hauteur minimale du terminal */
+}
+
+textarea {
+  width: calc(100% - 20px); /* Ajuste pour le padding */
+  padding: 10px;
+  margin-bottom: 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 0.9em;
+  resize: vertical;
+  min-height: 100px; /* Hauteur minimale par défaut */
+  box-sizing: border-box; /* Inclut padding et border dans la largeur/hauteur */
+  flex-grow: 1; /* Permet au textarea de prendre l'espace disponible */
+}
+
+.llm-response-section textarea,
+.code-view textarea,
+.terminal-section textarea {
+  min-height: 150px; /* Hauteur plus généreuse pour ces zones */
+  background-color: #282c34; /* Fond plus sombre pour l'affichage de code */
+  color: #abb2bf; /* Couleur de texte plus claire pour le code */
+  border: 1px solid #444;
+}
+
+.prompt-section textarea {
+  min-height: 80px;
+}
+
+button {
+  background-color: #4CAF50;
+  color: white;
+  padding: 10px 15px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 1em;
+  transition: background-color 0.3s ease;
+}
+
+button:hover:not(:disabled) {
+  background-color: #45a049;
+}
+
+button:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+}
+
+.note {
+  font-size: 0.8em;
+  color: #777;
+  margin-top: 10px;
+}
+
+.footer {
+  margin-top: 30px;
+  font-size: 0.8em;
+  color: #888;
+}

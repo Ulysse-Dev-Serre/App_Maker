@@ -1,0 +1,32 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.so
+*.egg-info/
+.venv/
+venv/
+env/
+*.sqlite3
+*.log
+
+# --- Qt/PySide ---
+*.qrc
+*.pyc
+
+# --- Node/Vite/React ---
+node_modules/
+dist/
+build/
+.vite/
+*.log
+
+# --- System/Editor ---
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# --- Env files ---
+.env
+.env.*
