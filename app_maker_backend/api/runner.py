@@ -47,7 +47,8 @@ async def stop_project():
     """
     add_log("Requête: Arrêt de l'application PySide6.")
     try:
-        stop_pyside_application()
+        # CORRECTION: Ajouter 'await' car stop_pyside_application est une coroutine
+        await stop_pyside_application() 
         return {"message": "Application PySide6 arrêtée."}
     except Exception as e:
         add_log(f"Erreur lors de l'arrêt de l'application: {e}", level="ERROR")

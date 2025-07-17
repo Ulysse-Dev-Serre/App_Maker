@@ -1,0 +1,58 @@
+/* app_maker_frontend/src/components/FileExplorer.css */
+.file-explorer {
+    background-color: #282c34;
+    color: #f0f0f0;
+    padding: 15px;
+    border-right: 1px solid #444;
+    overflow-y: auto;
+    width: 250px; /* Largeur fixe pour l'explorateur */
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.2);
+}
+
+.file-explorer h2 {
+    color: #61dafb;
+    margin-top: 0;
+    margin-bottom: 15px;
+    text-align: center;
+}
+
+.file-tree {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-size: 0.95em;
+}
+
+.tree-item {
+    margin-left: 15px; /* Indentation pour les niveaux */
+    line-height: 1.8;
+}
+
+.item-name {
+    cursor: pointer;
+    padding: 2px 5px;
+    border-radius: 4px;
+    transition: background-color 0.2s, color 0.2s;
+    display: inline-block; /* Permet le padding et le background */
+}
+
+.item-name:hover {
+    background-color: #4a4a4a;
+}
+
+.item-name.selected {
+    background-color: #61dafb;
+    color: #282c34;
+    font-weight: bold;
+}
+
+.file-item .item-name {
+    color: #e0e0e0; /* Couleur pour les noms de fichiers */
+}
+
+.folder-item .item-name {
+    color: #a0a0a0; /* Couleur pour les noms de dossiers */
+    font-weight: bold;
+}
+
+.children {
+    /* Pas de style direct ici, l'indentation est gérée par margin-left sur .tree-item */
+}
