@@ -7,11 +7,11 @@ interface ProjectInfo {
 
 interface UseProjectsResult {
   projects: ProjectInfo[];
-  fetchProjects: () => Promise<void>;
+  fetchProjects: () => Promise<ProjectInfo[]>; // NOUVEAU: La fonction retourne Promise<ProjectInfo[]>
   handleProjectRename: (id: string, newName: string) => Promise<void>;
   handleProjectDelete: (id: string) => Promise<void>;
   error: string | null;
-  loading: boolean; // Ajout d'un état de chargement pour les actions
+  loading: boolean;
 }
 
 export const useProjects = (): UseProjectsResult => {
@@ -27,12 +27,15 @@ export const useProjects = (): UseProjectsResult => {
       if (response.ok) {
         const data: ProjectInfo[] = await response.json();
         setProjects(data);
+        return data; // NOUVEAU: Retourne les données récupérées
       } else {
         setError(`Erreur lors de la récupération de la liste des projets: ${response.statusText}`);
+        return []; // Retourne un tableau vide en cas d'erreur
       }
     } catch (err) {
       console.error('Erreur lors de la récupération des projets:', err);
       setError(`Erreur réseau lors de la récupération des projets: ${err instanceof Error ? err.message : String(err)}`);
+      return []; // Retourne un tableau vide en cas d'erreur réseau
     } finally {
       setLoading(false);
     }
@@ -83,8 +86,13 @@ export const useProjects = (): UseProjectsResult => {
   }, [fetchProjects]);
 
   useEffect(() => {
-    fetchProjects();
-  }, [fetchProjects]);
+    // La première exécution de fetchProjects se fera via le useEffect de App.tsx
+    // pour que la logique de chargement du dernier projet puisse utiliser les données.
+    // Cette ligne peut être retirée si la gestion de fetchProjects est centralisée dans App.tsx
+    // ou si on veut s'assurer que 'projects' est toujours à jour pour d'autres usages du hook.
+    // Pour l'instant, je la laisse pour la cohérence du hook, mais le chargement initial est géré par App.tsx.
+    // fetchProjects();
+  }, []); // Dépendances vides pour qu'il ne s'exécute qu'une fois au montage
 
   return { projects, fetchProjects, handleProjectRename, handleProjectDelete, error, loading };
 };

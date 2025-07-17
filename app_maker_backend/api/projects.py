@@ -13,7 +13,8 @@ from core.project_manager import (
     delete_project,
     list_all_projects,
     rename_project,
-    get_project_problem, # AJOUTER CET IMPORT
+    get_project_problem,
+    get_project_history, # AJOUTER CET IMPORT
     ProjectNotFoundException,
     _get_project_path
 )
@@ -48,9 +49,12 @@ class ProjectFilesResponse(BaseModel):
     project_id: str
     files: Dict[str, str]
 
-# NOUVEAU : Modèle pour la réponse du statut du problème
 class ProblemStatusResponse(BaseModel):
-    problem: Optional[Dict[str, Any]] # Peut être null si pas de problème
+    problem: Optional[Dict[str, Any]]
+
+# NOUVEAU : Modèle pour la réponse de l'historique du projet
+class ProjectHistoryResponse(BaseModel):
+    history: Dict[str, Any] # L'historique est un dictionnaire
 
 @router.post("/projects/", response_model=ProjectFilesResponse, summary="Crée un nouveau projet PySide6 basé sur un prompt initial")
 async def create_project(request: GenerateProjectRequest):
@@ -142,7 +146,6 @@ async def get_project_files(project_id: str):
         add_log(f"Erreur lors de la récupération des fichiers du projet {project_id}: {e}", level="ERROR")
         raise HTTPException(status_code=500, detail=f"Erreur interne du serveur: {e}")
 
-# NOUVELLE ROUTE : Récupère l'état du problème pour un projet
 @router.get("/projects/{project_id}/problem_status", response_model=ProblemStatusResponse, summary="Récupère l'état du problème pour un projet PySide6")
 async def get_project_problem_status(project_id: str):
     """
@@ -150,13 +153,30 @@ async def get_project_problem_status(project_id: str):
     """
     add_log(f"Requête: Récupération du statut du problème pour le projet {project_id}.")
     try:
-        problem_data = get_project_problem(project_id) # Appel à la fonction de project_manager
+        problem_data = get_project_problem(project_id)
         return {"problem": problem_data}
     except ProjectNotFoundException as e:
         add_log(f"Projet non trouvé lors de la récupération du statut du problème: {project_id} - {e}", level="WARNING")
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         add_log(f"Erreur lors de la récupération du statut du problème pour {project_id}: {e}", level="ERROR")
+        raise HTTPException(status_code=500, detail=f"Erreur interne du serveur: {e}")
+
+# NOUVELLE ROUTE : Récupère l'historique d'un projet
+@router.get("/projects/{project_id}/history", response_model=ProjectHistoryResponse, summary="Récupère l'historique des prompts et réponses LLM pour un projet")
+async def get_project_history_route(project_id: str):
+    """
+    Retourne le contenu du fichier history.json pour un projet donné.
+    """
+    add_log(f"Requête: Récupération de l'historique pour le projet {project_id}.")
+    try:
+        history_data = get_project_history(project_id) # Appel à la fonction de project_manager
+        return {"history": history_data}
+    except ProjectNotFoundException as e:
+        add_log(f"Projet non trouvé lors de la récupération de l'historique: {project_id} - {e}", level="WARNING")
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        add_log(f"Erreur lors de la récupération de l'historique pour {project_id}: {e}", level="ERROR")
         raise HTTPException(status_code=500, detail=f"Erreur interne du serveur: {e}")
 
 

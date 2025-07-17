@@ -20,7 +20,7 @@ const TerminalSection: React.FC<TerminalSectionProps> = ({
   logsEndRef,
 }) => {
   return (
-    <div className="terminal-section">
+    <div className="terminal-section"> {/* La classe terminal-section est maintenant stylisée par App.css */}
       <h2>Logs du Backend</h2>
       <button
         onClick={() => setIsPollingEnabled(!isPollingEnabled)}

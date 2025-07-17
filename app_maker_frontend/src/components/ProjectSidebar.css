@@ -1,19 +1,48 @@
 /* app_maker_frontend/src/components/ProjectSidebar.css */
 .project-sidebar {
-    width: 250px; /* Largeur fixe pour la sidebar */
+    position: fixed; /* Positionnement fixe pour la superposition */
+    top: 0;
+    left: -280px; /* Commence hors de l'écran (largeur + un peu de marge) */
+    width: 250px; /* Largeur de la sidebar */
+    height: 100%; /* Prend toute la hauteur */
     background-color: #2e2e2e;
     color: #f0f0f0;
     padding: 20px;
     border-right: 1px solid #444;
     overflow-y: auto;
-    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.2);
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.5);
+    z-index: 1000; /* Assure qu'elle est au-dessus du reste du contenu */
+    transition: left 0.3s ease-in-out; /* Animation de glissement */
 }
 
-.project-sidebar h2 {
-    color: #61dafb;
-    margin-top: 0;
+.project-sidebar.visible {
+    left: 0; /* Glisse pour apparaître */
+}
+
+.sidebar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     margin-bottom: 20px;
-    text-align: center;
+}
+
+.sidebar-header h2 {
+    color: #61dafb;
+    margin: 0;
+}
+
+.close-sidebar-button {
+    background: none;
+    border: none;
+    color: #f0f0f0;
+    font-size: 1.5em;
+    cursor: pointer;
+    padding: 5px;
+    transition: color 0.2s;
+}
+
+.close-sidebar-button:hover {
+    color: #ff6b6b;
 }
 
 .project-list {
@@ -66,7 +95,7 @@
 }
 
 .project-item.selected .project-actions button {
-    color: #282c34; /* Couleur des icônes quand le projet est sélectionné */
+    color: #282c34;
 }
 
 .project-actions button:hover {

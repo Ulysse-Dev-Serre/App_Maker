@@ -150,7 +150,11 @@ export const useAppActions = ({
         commonFetchOptions('POST', { project_id: projectId })
       );
       if (response.ok) {
-        await fetchProblemStatus(projectId); // Vérifier le problème après le lancement
+        // NOUVEAU: Ajouter un délai avant de vérifier le statut du problème
+        // Cela donne le temps à l'application PySide6 de crasher et d'écrire dans problem.json
+        setTimeout(async () => {
+          await fetchProblemStatus(projectId);
+        }, 3000); // Attendre 3 secondes (peut être ajusté si nécessaire)
       } else {
         const errorData = await response.json();
         setError(`Erreur lors du lancement de l'application: ${errorData.detail || response.statusText}`);

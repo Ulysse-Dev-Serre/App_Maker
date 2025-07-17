@@ -8,6 +8,7 @@
   display: flex;
   flex-direction: column;
   background-color: #202020; /* Fond sombre général */
+  width: 100%;
 }
 
 .App {
@@ -23,42 +24,83 @@
   color: white;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
   z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
 }
+
+.App-header h1 {
+  margin: 0;
+  text-align: center;
+}
+
+.sidebar-toggle-button {
+  background-color: #61dafb;
+  color: #282c34;
+  border: none;
+  padding: 8px 15px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 0.9em;
+  font-weight: bold;
+  transition: background-color 0.2s, transform 0.1s;
+  position: absolute;
+  left: 20px;
+}
+
+.sidebar-toggle-button:hover {
+  background-color: #4fa3d1;
+  transform: translateY(-1px);
+}
+
+.sidebar-toggle-button:disabled {
+  background-color: #555;
+  color: #bbb;
+  cursor: not-allowed;
+}
+
 
 .main-layout {
   display: flex;
-  flex: 1; /* Prend l'espace restant */
+  flex: 1;
   width: 100%;
-  overflow: hidden; /* Empêche le débordement */
+  overflow: hidden;
+  flex-direction: row; /* Par défaut, les panneaux sont côte à côte */
 }
 
-/* Nouveau panneau central (ancien left-panel) */
 .center-panel {
   display: flex;
   flex-direction: column;
-  flex: 1; /* Prend l'espace restant après la sidebar */
+  flex: 1;
   padding: 20px;
   gap: 20px;
-  overflow-y: auto; /* Permet le défilement si le contenu est trop grand */
+  overflow-y: auto;
   background-color: #202020;
+  /* ANCIEN: align-items: center; */ /* Supprimé */
+  /* ANCIEN: justify-content: center; */ /* Supprimé */
 }
 
-/* Nouveau panneau IDE à droite */
+
 .ide-panel {
   display: flex;
-  flex: 2; /* Prend plus d'espace que le panneau central */
+  flex-direction: column;
+  flex: 1; /* Prend 50% de la largeur disponible */
   background-color: #1e1e1e;
   border-left: 1px solid #444;
-  overflow: hidden; /* Géré par les sous-composants */
+  overflow: hidden;
 }
 
+/* Styles pour les sections à l'intérieur des panneaux */
 .prompt-section, .terminal-section {
   background-color: #282c34;
   padding: 20px;
   border-radius: 8px;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
   color: white;
-  text-align: left;
+  text-align: left; /* Réinitialise le texte à gauche pour ces sections */
+  width: 100%; /* S'assure que ces sections prennent toute la largeur de center-panel */
+  max-width: 800px; /* Optionnel: limite la largeur des sections pour la lisibilité sur grands écrans */
 }
 
 .prompt-section h2, .terminal-section h2 {
@@ -68,7 +110,7 @@
 }
 
 textarea {
-  width: calc(100% - 20px); /* Ajuster pour le padding */
+  width: calc(100% - 20px);
   padding: 10px;
   margin-bottom: 15px;
   border-radius: 5px;
@@ -76,39 +118,92 @@ textarea {
   background-color: #333;
   color: white;
   font-family: monospace;
-  resize: vertical; /* Permet le redimensionnement vertical */
+  resize: vertical;
 }
 
-button {
-  background-color: #61dafb;
-  color: #282c34;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 5px;
-  cursor: pointer;
-  font-size: 1em;
-  font-weight: bold;
-  transition: background-color 0.2s, transform 0.1s;
+/* Ajustements pour les boutons dans prompt-section */
+.prompt-section .button-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 10px;
+    justify-content: center;
 }
 
-button:hover {
-  background-color: #4fa3d1;
-  transform: translateY(-1px);
+.prompt-section button {
+    padding: 8px 15px;
+    font-size: 0.9em;
+    flex-shrink: 0;
 }
 
-button:disabled {
-  background-color: #555;
-  color: #bbb;
-  cursor: not-allowed;
+/* Styles pour la section de l'historique */
+.history-section {
+    background-color: #2e2e2e;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.2);
+    flex-grow: 1;
+    overflow-y: auto;
+    max-height: 300px;
+    min-height: 100px;
+    margin-bottom: 20px;
+    width: 100%; /* S'assure qu'il prend toute la largeur de son parent */
+    max-width: 800px; /* Optionnel: limite la largeur pour la lisibilité */
 }
 
-.error-message {
-  color: #ff6b6b;
-  background-color: #3a1c1c;
-  padding: 10px;
-  border-radius: 5px;
-  margin-top: 15px;
-  text-align: center;
+.history-section h3 {
+    color: #a0a0a0;
+    margin-top: 0;
+    margin-bottom: 10px;
+    border-bottom: 1px solid #444;
+    padding-bottom: 5px;
+    text-align: center;
+}
+
+.history-entry {
+    margin-bottom: 15px;
+    padding: 10px;
+    border-radius: 5px;
+}
+
+.history-entry.user-prompt {
+    background-color: #3a4a5a;
+    border-left: 3px solid #61dafb;
+}
+
+.history-entry.llm-response {
+    background-color: #4a3a5a;
+    border-left: 3px solid #b361fb;
+}
+
+.history-entry p {
+    margin: 0 0 5px 0;
+    font-size: 0.9em;
+}
+
+.history-entry pre {
+    background-color: #1a1a1a;
+    padding: 8px;
+    border-radius: 4px;
+    overflow-x: auto;
+    font-size: 0.8em;
+}
+
+.history-entry .timestamp {
+    font-size: 0.75em;
+    color: #999;
+    text-align: right;
+    margin-top: 5px;
+}
+
+/* Ajustements pour la section des logs - maintenant dans le flux */
+.terminal-section {
+  width: 100%;
+  max-height: 200px;
+  overflow-y: auto;
+  padding: 15px;
+  box-sizing: border-box;
+  max-width: 800px; /* Optionnel: limite la largeur pour la lisibilité */
 }
 
 .logs-output {
@@ -119,7 +214,7 @@ button:disabled {
   font-family: monospace;
   white-space: pre-wrap;
   word-break: break-all;
-  max-height: 300px; /* Hauteur fixe pour les logs */
+  max-height: 120px;
   overflow-y: auto;
   color: #eee;
   text-align: left;
@@ -131,17 +226,17 @@ button:disabled {
     font-size: 0.85em;
 }
 
-.log-level-info { color: #88dd88; } /* Vert clair */
-.log-level-warning { color: #ffcc00; } /* Jaune */
-.log-level-error { color: #ff6666; } /* Rouge */
-.log-level-debug { color: #99ccff; } /* Bleu clair */
-.log-level-critical { color: #ff0000; font-weight: bold; } /* Rouge vif */
-.log-level-unknown { color: #aaaaaa; } /* Gris */
+.log-level-info { color: #88dd88; }
+.log-level-warning { color: #ffcc00; }
+.log-level-error { color: #ff6666; }
+.log-level-debug { color: #99ccff; }
+.log-level-critical { color: #ff0000; font-weight: bold; }
+.log-level-unknown { color: #aaaaaa; }
 
 
 /* Styles pour l'éditeur de code */
 .code-editor-pane {
-    flex: 1; /* Prend l'espace restant dans l'ide-panel */
+    flex: 1;
     display: flex;
     flex-direction: column;
     background-color: #1e1e1e;
@@ -158,8 +253,8 @@ button:disabled {
 }
 
 .code-display {
-    flex: 1; /* Prend tout l'espace vertical disponible */
-    width: calc(100% - 20px); /* Ajuster pour le padding */
+    flex: 1;
+    width: calc(100% - 20px);
     padding: 10px;
     border-radius: 5px;
     border: 1px solid #444;
@@ -167,11 +262,10 @@ button:disabled {
     color: #f0f0f0;
     font-family: 'Fira Code', 'Cascadia Code', monospace;
     font-size: 0.9em;
-    resize: none; /* Pas de redimensionnement manuel */
-    min-height: 200px; /* Hauteur minimale */
+    resize: none;
+    min-height: 200px;
 }
 
-/* Flexbox pour les sélecteurs LLM */
 .llm-selectors {
     display: flex;
     align-items: center;
@@ -199,3 +293,119 @@ button:disabled {
     border-color: #61dafb;
     box-shadow: 0 0 0 2px rgba(97, 218, 251, 0.3);
 }
+
+/* NOUVEAU: Styles pour le conteneur du message de bienvenue */
+.welcome-message-container {
+  background-color: #282c34;
+  padding: 40px;
+  border-radius: 8px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  color: white;
+  text-align: center;
+  max-width: 600px; /* Limite la largeur du message */
+  margin: auto; /* Centre le conteneur dans le center-panel */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 200px; /* Hauteur minimale pour le message */
+}
+
+.welcome-message-container h2 {
+  color: #61dafb;
+  font-size: 2em;
+  margin-bottom: 20px;
+}
+
+.welcome-message-container p {
+  font-size: 1.1em;
+  line-height: 1.6;
+  margin-bottom: 15px;
+  color: #e0e0e0;
+}
+
+
+/* Media Queries pour la responsivité */
+
+/* Pour les écrans plus petits (tablettes et mobiles) */
+@media (max-width: 768px) {
+  .main-layout {
+    flex-direction: column;
+  }
+
+  .center-panel, .ide-panel {
+    flex: none;
+    width: 100%;
+    padding: 10px;
+    gap: 10px;
+  }
+
+  .ide-panel {
+    border-left: none;
+    border-top: 1px solid #444;
+  }
+
+  .sidebar-toggle-button {
+    left: 10px;
+    padding: 6px 12px;
+    font-size: 0.8em;
+  }
+
+  .terminal-section {
+    position: relative;
+    bottom: auto;
+    left: auto;
+    width: 100%;
+    max-height: 150px;
+    margin-top: 20px;
+  }
+
+  .welcome-message-container {
+    padding: 20px;
+    min-height: 150px;
+  }
+
+  .welcome-message-container h2 {
+    font-size: 1.5em;
+  }
+
+  .welcome-message-container p {
+    font-size: 0.9em;
+  }
+}
+
+/* For very small screens (smartphones) */
+@media (max-width: 480px) {
+  .App-header {
+    padding: 15px;
+  }
+
+  .App-header h1 {
+    font-size: 1.5em;
+  }
+
+  .prompt-section, .terminal-section {
+    padding: 15px;
+  }
+
+  .prompt-section button {
+    padding: 6px 10px;
+    font-size: 0.8em;
+  }
+
+  .llm-selectors {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  textarea, .code-display {
+    font-size: 0.8em;
+  }
+
+  .history-entry p, .history-entry pre {
+    font-size: 0.8em;
+  }
+}
+
+

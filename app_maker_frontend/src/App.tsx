@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import './App.css';
 
 // Import des hooks personnalisés
@@ -9,11 +9,25 @@ import { useLogs } from './hooks/useLogs';
 import { useAppActions } from './hooks/useAppActions';
 
 // Import des composants UI
-import ProjectSidebar from './components/ProjectSidebar'; // Assurez-vous que ce fichier existe et est correct
-import FileExplorer from './components/FileExplorer';   // Assurez-vous que ce fichier existe et est correct
+import ProjectSidebar from './components/ProjectSidebar';
+import FileExplorer from './components/FileExplorer';
 import PromptSection from './components/PromptSection';
 import TerminalSection from './components/TerminalSection';
 import ProblemDisplay from './components/ProblemDisplay';
+// import WelcomePanel from './components/WelcomePanel'; // RETIRÉ
+
+// Interface pour les entrées d'historique
+interface HistoryEntry {
+  type: 'user' | 'llm_response';
+  content: string | { [key: string]: string };
+  timestamp: string;
+}
+
+// Interface pour la structure complète de l'historique
+interface ProjectHistory {
+  project_name: string;
+  prompts: HistoryEntry[];
+}
 
 function App() {
   // États locaux de App
@@ -21,6 +35,9 @@ function App() {
   const [projectId, setProjectId] = useState<string | null>(null);
   const [projectFiles, setProjectFiles] = useState<{ [key: string]: string }>({});
   const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
+  const [showSidebar, setShowSidebar] = useState<boolean>(false);
+  const [projectHistory, setProjectHistory] = useState<ProjectHistory | null>(null);
+  const [initialLoadAttempted, setInitialLoadAttempted] = useState<boolean>(false);
 
   // Utilisation des hooks personnalisés
   const { llmOptions, selectedLlmProvider, setSelectedLlmProvider, selectedModel, setSelectedModel, error: llmError } = useLlmOptions();
@@ -31,12 +48,8 @@ function App() {
   // Combinaison des erreurs des différents hooks
   const combinedError = llmError || projectsError || problemError || logsError;
 
-  // Fonction pour charger les fichiers d'un projet spécifique (appelée par ProjectSidebar)
+  // Fonction pour charger les fichiers d'un projet spécifique
   const loadProjectFiles = useCallback(async (id: string) => {
-    // Le chargement est géré par useAppActions, mais nous avons besoin de cette fonction ici
-    // pour mettre à jour projectFiles et selectedFileName.
-    // Pour éviter la duplication de logique de chargement/erreur, nous allons simplement
-    // faire un fetch direct ici, car c'est la responsabilité de App de gérer ces états.
     try {
       const response = await fetch(`http://127.0.0.1:8000/api/projects/${id}/files`);
       if (response.ok) {
@@ -44,11 +57,31 @@ function App() {
         setProjectFiles(data.files);
         const defaultFile = data.files['main.py'] ? 'main.py' : Object.keys(data.files)[0];
         setSelectedFileName(defaultFile || null);
+        return true;
       } else {
         console.error(`Erreur lors du chargement des fichiers du projet: ${response.statusText}`);
+        return false;
       }
     } catch (err) {
       console.error('Erreur réseau lors du chargement des fichiers du projet:', err);
+      return false;
+    }
+  }, []);
+
+  // Fonction pour récupérer l'historique du projet
+  const fetchProjectHistory = useCallback(async (id: string) => {
+    try {
+      const response = await fetch(`http://127.0.0.1:8000/api/projects/${id}/history`);
+      if (response.ok) {
+        const data = await response.json();
+        setProjectHistory(data.history || null);
+      } else {
+        console.error(`Erreur lors de la récupération de l'historique du projet: ${response.statusText}`);
+        setProjectHistory(null);
+      }
+    } catch (err) {
+      console.error('Erreur réseau lors de la récupération de l\'historique du projet:', err);
+      setProjectHistory(null);
     }
   }, []);
 
@@ -56,7 +89,52 @@ function App() {
   const handleProjectSelect = useCallback((id: string) => {
     setProjectId(id);
     loadProjectFiles(id);
-  }, [loadProjectFiles]);
+    fetchProjectHistory(id);
+    setShowSidebar(false);
+    localStorage.setItem('lastSelectedProjectId', id);
+  }, [loadProjectFiles, fetchProjectHistory]);
+
+  // Effet pour charger le dernier projet sélectionné au démarrage
+  useEffect(() => {
+    const initializeApp = async () => {
+      if (initialLoadAttempted) return;
+
+      setInitialLoadAttempted(true);
+
+      const fetchedProjects = await fetchProjects();
+      
+      const lastProjectId = localStorage.getItem('lastSelectedProjectId');
+      if (lastProjectId) {
+        const projectExists = fetchedProjects.some(p => p.project_id === lastProjectId);
+        if (projectExists) {
+          setProjectId(lastProjectId);
+        } else {
+          localStorage.removeItem('lastSelectedProjectId');
+          setProjectId(null);
+        }
+      } else {
+        setProjectId(null);
+      }
+    };
+
+    if (!projectsLoading && !initialLoadAttempted) {
+      initializeApp();
+    }
+  }, [projectsLoading, initialLoadAttempted, projects, fetchProjects, setProjectId]);
+
+  // Effet pour déclencher les fetchs liés au projet une fois que projectId est défini
+  useEffect(() => {
+    if (projectId) {
+      loadProjectFiles(projectId);
+      fetchProjectHistory(projectId);
+      fetchProblemStatus(projectId);
+    } else {
+      setProjectFiles({});
+      setProjectHistory(null);
+      setSelectedFileName(null);
+    }
+  }, [projectId, loadProjectFiles, fetchProjectHistory, fetchProblemStatus]);
+
 
   // Utilisation du hook pour les actions de l'application
   const {
@@ -89,23 +167,35 @@ function App() {
     setSelectedFileName(fileName);
   }, []);
 
+  // Dériver le nom du projet actuel
+  const currentProjectName = projectId
+    ? projects.find(p => p.project_id === projectId)?.name || `Projet ${projectId.substring(0, 8)}...`
+    : null;
+
   return (
     <div className="App">
       <header className="App-header">
+        <button className="sidebar-toggle-button" onClick={() => setShowSidebar(!showSidebar)}>
+          ☰ Projets
+        </button>
         <h1>App Maker PySide6</h1>
       </header>
-      <div className="main-layout">
-        {/* Sidebar pour la gestion des projets */}
-        <ProjectSidebar
-          projects={projects}
-          selectedProjectId={projectId}
-          onProjectSelect={handleProjectSelect}
-          onProjectRename={handleProjectRename}
-          onProjectDelete={handleProjectDelete}
-          loading={overallLoading}
-        />
 
+      <ProjectSidebar
+        projects={projects}
+        selectedProjectId={projectId}
+        onProjectSelect={handleProjectSelect}
+        onProjectRename={handleProjectRename}
+        onProjectDelete={handleProjectDelete}
+        loading={overallLoading}
+        isVisible={showSidebar}
+        onClose={() => setShowSidebar(false)}
+      />
+
+      <div className="main-layout">
         <div className="center-panel">
+          {/* Toujours afficher PromptSection et TerminalSection, même si projectId est null */}
+          {/* PromptSection gérera l'affichage du bouton "Générer" vs "Mettre à jour" selon projectId */}
           <PromptSection
             prompt={prompt}
             setPrompt={setPrompt}
@@ -114,7 +204,7 @@ function App() {
             setSelectedLlmProvider={setSelectedLlmProvider}
             selectedModel={selectedModel}
             setSelectedModel={setSelectedModel}
-            projectId={projectId}
+            projectId={projectId} // sera null si aucun projet n'est sélectionné
             loading={overallLoading}
             handleGenerateApp={handleGenerateApp}
             handleUpdateApp={handleUpdateApp}
@@ -122,6 +212,8 @@ function App() {
             handleStopApp={handleStopApp}
             handleFixProblem={handleFixProblem}
             currentProblem={currentProblem}
+            currentProjectName={currentProjectName}
+            projectHistory={projectHistory}
           />
 
           {overallLoading && <p>Chargement...</p>}
@@ -135,26 +227,35 @@ function App() {
             setIsPollingEnabled={setIsPollingEnabled}
             logsEndRef={logsEndRef}
           />
+
+          {/* Si vous voulez un message de "chargement" très simple, gardez ceci */}
+          {(!initialLoadAttempted || projectsLoading) && (
+             <p style={{ textAlign: 'center', color: '#f0f0f0', fontSize: '1.2em', marginTop: '50px' }}>Chargement...</p>
+          )}
+
         </div>
 
-        <div className="ide-panel">
-          <FileExplorer
-            projectId={projectId}
-            files={projectFiles}
-            selectedFileName={selectedFileName}
-            onFileSelect={handleFileSelect}
-          />
-          <div className="code-editor-pane">
-            <h2>{selectedFileName ? `Code de ${selectedFileName}` : 'Sélectionnez un fichier'}</h2>
-            <textarea
-              className="code-display"
-              value={selectedFileName ? projectFiles[selectedFileName] || '' : 'Sélectionnez un fichier pour voir son contenu.'}
-              readOnly
-              rows={25}
-              cols={80}
-            ></textarea>
+        {/* Le panneau IDE n'est affiché que si un projet est sélectionné */}
+        {projectId && (
+          <div className="ide-panel">
+            <FileExplorer
+              projectId={projectId}
+              files={projectFiles}
+              selectedFileName={selectedFileName}
+              onFileSelect={handleFileSelect}
+            />
+            <div className="code-editor-pane">
+              <h2>{selectedFileName ? `Code de ${selectedFileName}` : 'Sélectionnez un fichier'}</h2>
+              <textarea
+                className="code-display"
+                value={selectedFileName ? projectFiles[selectedFileName] || '' : 'Sélectionnez un fichier pour voir son contenu.'}
+                readOnly
+                rows={25}
+                cols={80}
+              ></textarea>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

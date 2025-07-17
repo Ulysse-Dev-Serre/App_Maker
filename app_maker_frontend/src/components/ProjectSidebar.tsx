@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import './ProjectSidebar.css'; // Créez ce fichier CSS
+import './ProjectSidebar.css';
 
 interface ProjectInfo {
   project_id: string;
@@ -13,6 +13,8 @@ interface ProjectSidebarProps {
   onProjectRename: (projectId: string, newName: string) => void;
   onProjectDelete: (projectId: string) => void;
   loading: boolean;
+  isVisible: boolean; // NOUVEAU : pour contrôler la visibilité
+  onClose: () => void; // NOUVEAU : pour fermer la sidebar
 }
 
 const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
@@ -22,6 +24,8 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
   onProjectRename,
   onProjectDelete,
   loading,
+  isVisible, // Destructuration de la nouvelle prop
+  onClose,   // Destructuration de la nouvelle prop
 }) => {
   const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
   const [newProjectName, setNewProjectName] = useState<string>('');
@@ -51,8 +55,16 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
   };
 
   return (
-    <div className="project-sidebar">
-      <h2>Mes Projets</h2>
+    // Ajout de la classe 'visible' si isVisible est true
+    <div className={`project-sidebar ${isVisible ? 'visible' : ''}`}>
+      <div className="sidebar-header">
+        <h2>Mes Projets</h2>
+        {/* NOUVEAU : Bouton de fermeture de la sidebar */}
+        <button className="close-sidebar-button" onClick={onClose}>
+          ✖
+        </button>
+      </div>
+      
       {loading && <p>Chargement des projets...</p>}
       <ul className="project-list">
         {projects.length === 0 ? (
