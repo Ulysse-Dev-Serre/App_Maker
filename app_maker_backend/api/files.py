@@ -1,46 +1,56 @@
-# app_maker_backend/api/files.py
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from core.project_manager import get_project_files_structure, get_file_content_from_path
-from core.config import BASE_PROJECTS_DIR
-import os # Pour les opérations de chemin si nécessaire
+import os
+from typing import List, Dict
 
-router = APIRouter(
-    prefix="/api",
-    tags=["Files"],
-)
+# Imports des nouvelles fonctions du project_manager
+from core.project_manager import get_project_files_content, ProjectNotFoundException
+from core.logging_config import add_log
 
-class PathInfo(BaseModel):
-    path: str # Ce chemin est un chemin ABSOLU du dossier projet pour list_project_files
-              # ou un chemin RELATIF à generated_projects pour get_file_content
+router = APIRouter()
 
-@router.post("/list_project_files")
-async def list_project_files_route(project_info: PathInfo):
+# Modèles Pydantic (si nécessaires pour vos requêtes/réponses dans ce fichier)
+class FileDetail(BaseModel):
+    path: str
+    content: str
+
+class ProjectIdRequest(BaseModel):
+    project_id: str
+
+# Ancien endpoint pour lister les fichiers, adapté
+@router.get("/files/{project_id}", response_model=Dict[str, str], summary="Liste et retourne le contenu de tous les fichiers d'un projet")
+async def list_project_files_content(project_id: str):
     """
-    Retourne la structure des fichiers et dossiers d'un projet généré.
-    Le chemin (path) attendu est le chemin ABSOLU du dossier du projet.
+    Récupère le contenu de tous les fichiers d'un projet spécifique.
     """
+    add_log(f"Requête: Liste et contenu des fichiers pour le projet {project_id}")
     try:
-        # La validation de sécurité est maintenant dans get_project_files_structure
-        structure = await get_project_files_structure(project_info.path)
-        return {"project_structure": structure}
-    except HTTPException as e:
-        raise e # Repropager les HTTPExceptions
+        files_content = get_project_files_content(project_id)
+        return files_content
+    except ProjectNotFoundException as e:
+        add_log(f"Projet non trouvé lors de la liste des fichiers: {project_id} - {e}", level="WARNING")
+        raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erreur lors de la liste des fichiers: {e}")
+        add_log(f"Erreur lors de la récupération des fichiers du projet {project_id}: {e}", level="ERROR")
+        raise HTTPException(status_code=500, detail=f"Erreur interne du serveur: {e}")
 
 
-@router.post("/get_file_content")
-async def get_file_content_route(file_info: PathInfo):
-    """
-    Récupère le contenu d'un fichier spécifié par son chemin.
-    Le chemin (path) attendu est le chemin RELATIF au dossier 'generated_projects'.
-    Ex: 'pyside_app_1752717932/main.py'
-    """
-    try:
-        content = await get_file_content_from_path(file_info.path)
-        return {"content": content}
-    except HTTPException as e:
-        raise e # Repropager les HTTPExceptions
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erreur lors de la récupération du contenu: {e}")
+# Ancien endpoint pour obtenir le contenu d'un fichier spécifique.
+# Cette logique peut être gérée côté frontend en utilisant la réponse de /files/{project_id},
+# ou nous pouvons ajouter une fonction spécifique si vraiment nécessaire.
+# Pour l'instant, je le commente si vous n'avez pas de fonction équivalente.
+# Si vous avez besoin d'un endpoint pour un fichier unique, la logique serait:
+# @router.post("/get_file_content", response_model=FileDetail)
+# async def get_single_file_content(request: FileRequest): # Vous aurez besoin d'un modèle FileRequest
+#     try:
+#         # Nous n'avons pas de fonction directe get_file_content_from_path
+#         # Il faudrait adapter pour lire un fichier spécifique dans le dossier du projet
+#         # Ou bien, le frontend demande tous les fichiers et choisit ensuite.
+#         # Exemple (non testé):
+#         # project_path = _get_project_path(request.project_id) # Nécessite d'importer _get_project_path
+#         # file_path = os.path.join(project_path, request.file_name)
+#         # with open(file_path, 'r', encoding='utf-8') as f:
+#         #    content = f.read()
+#         # return FileDetail(file_name=request.file_name, content=content)
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=str(e))

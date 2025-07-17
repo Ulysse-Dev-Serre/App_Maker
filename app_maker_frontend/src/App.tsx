@@ -1,193 +1,293 @@
-// app_maker_frontend/src/App.tsx
+import { useState, FormEvent, useEffect, useRef } from 'react';
+import './App.css'; // Assurez-vous que votre fichier CSS est correctement importé
+import FileList from './FileList'; // Assurez-vous que FileList est dans le même dossier ou le chemin correct
 
-import { useState, FormEvent, useEffect } from 'react';
-import './App.css';
+// Définir les interfaces pour les données LLM
+interface LlmOptions {
+  [provider: string]: string[]; // Ex: { "gemini": ["gemini-1.5-pro"], "openai": ["gpt-3.5-turbo"] }
+}
 
-// Interface pour la structure de fichier/dossier que le backend nous renvoie
-interface FileNode {
-  name: string;
-  type: 'file' | 'directory';
-  path: string; // Ce chemin est relatif au dossier du projet généré (ex: "main.py" ou "src/utils.py")
-  children?: FileNode[]; // Pour les répertoires
+interface ProjectFile {
+  fileName: string;
+  content: string;
+}
+
+interface ProjectData {
+  project_id: string;
+  files: { [key: string]: string };
+}
+
+interface LogEntry {
+  timestamp: string;
+  level: string;
+  message: string;
 }
 
 function App() {
   const [prompt, setPrompt] = useState<string>('');
-  const [generatedCode, setGeneratedCode] = useState<string>('Le code généré par l\'IA apparaîtra ici...');
-  const [consoleOutput, setConsoleOutput] = useState<string>('Attente des logs du backend...');
-  const [projectPath, setProjectPath] = useState<string | null>(null); // Pour stocker le chemin ABSOLU du dossier du projet généré
-  const [selectedFileContent, setSelectedFileContent] = useState<string>('Sélectionnez un fichier pour voir son contenu.');
-  const [selectedFilePath, setSelectedFilePath] = useState<string | null>(null);
-  const [projectStructure, setProjectStructure] = useState<FileNode[]>([]);
+  const [projectId, setProjectId] = useState<string | null>(null);
+  const [projectFiles, setProjectFiles] = useState<{ [key: string]: string }>({});
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+  const [logs, setLogs] = useState<LogEntry[]>([]);
+  // Polling des logs désactivé par défaut. Activez-le via le bouton si nécessaire.
+  const [isPollingEnabled, setIsPollingEnabled] = useState<boolean>(false); 
+  const pollingIntervalRef = useRef<number | null>(null);
 
-  // Utilisation de useEffect pour le polling des logs (comme avant)
+  // Nouveaux états pour la sélection du LLM
+  const [llmOptions, setLlmOptions] = useState<LlmOptions>({});
+  const [selectedLlmProvider, setSelectedLlmProvider] = useState<string>('gemini'); // Défaut initial
+  const [selectedModel, setSelectedModel] = useState<string>('gemini-1.5-pro'); // Défaut initial pour le modèle
+
+  const logsEndRef = useRef<HTMLDivElement>(null); // Pour faire défiler les logs
+
+  // Fonction pour faire défiler les logs vers le bas
+  const scrollToBottom = () => {
+    logsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  // Effet pour récupérer les options LLM au chargement du composant
   useEffect(() => {
-    // const fetchLogs = async () => {
-    //   try {
-    //     const response = await fetch('http://127.00.0.1:8000/api/get_logs');
-    //     if (response.ok) {
-    //       const data = await response.json();
-    //       setConsoleOutput(data.logs.join('\n'));
-    //     }
-    //   } catch (error) {
-    //     console.error('Erreur lors de la récupération des logs:', error);
-    //   }
-    // };
+    const fetchLlmOptions = async () => {
+      try {
+        const response = await fetch('http://127.0.0.1:8000/api/llm_options');
+        if (response.ok) {
+          const data: LlmOptions = await response.json();
+          setLlmOptions(data);
 
-    //const intervalId = setInterval(fetchLogs, 1000); // Poll toutes les secondes
-    //return () => clearInterval(intervalId); // Nettoyage à la suppression du composant
-  }, []); // Dépendances vides pour n'exécuter qu'une seule fois
+          // Initialiser les sélections par défaut si des options sont disponibles
+          if (Object.keys(data).length > 0) {
+            const defaultProvider = Object.keys(data)[0]; // Premier fournisseur disponible
+            setSelectedLlmProvider(defaultProvider);
+            if (data[defaultProvider] && data[defaultProvider].length > 0) {
+              setSelectedModel(data[defaultProvider][0]); // Premier modèle de ce fournisseur
+            }
+          }
+        } else {
+          setError(`Erreur lors de la récupération des options LLM: ${response.statusText}`);
+        }
+      } catch (error) {
+        console.error('Erreur lors de la récupération des options LLM:', error);
+        setError(`Erreur réseau lors de la récupération des options LLM: ${error}`);
+      }
+    };
+    fetchLlmOptions();
+  }, []); // Exécuter une seule fois au montage du composant
+
+  // Effet pour mettre à jour le modèle sélectionné quand le fournisseur change
+  useEffect(() => {
+    if (llmOptions[selectedLlmProvider] && llmOptions[selectedLlmProvider].length > 0) {
+      setSelectedModel(llmOptions[selectedLlmProvider][0]); // Sélectionne le premier modèle du nouveau fournisseur
+    } else {
+      setSelectedModel(''); // Réinitialise si aucun modèle pour ce fournisseur
+    }
+  }, [selectedLlmProvider, llmOptions]);
+
+
+  // Effet pour le polling des logs (contrôlé par isPollingEnabled)
+  useEffect(() => {
+    if (isPollingEnabled) {
+      pollingIntervalRef.current = window.setInterval(fetchLogs, 1000); // Poll toutes les 1 seconde
+    } else {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
+      }
+    }
+
+    // Nettoyage à la désactivation du polling ou au démontage du composant
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+      }
+    };
+  }, [isPollingEnabled]); // Dépend de l'état du polling
+
+  // Effet pour faire défiler les logs quand ils changent
+  useEffect(() => {
+    scrollToBottom();
+  }, [logs]);
+
+
+  const fetchLogs = async () => {
+    try {
+      const response = await fetch('http://127.0.0.1:8000/api/get_logs');
+      if (response.ok) {
+        const data = await response.json();
+        // data.logs est une seule chaîne de caractères contenant tout le contenu du fichier de log.
+        // Nous allons la diviser en lignes et tenter de parser chaque ligne.
+        if (typeof data.logs === 'string') {
+          const logLines = data.logs.split('\n').filter((line: string) => line.trim() !== '');
+          const parsedLogs: LogEntry[] = logLines.map((line: string) => {
+            let timestamp = "N/A";
+            let level = "UNKNOWN";
+            let message = line;
+
+            // Regex pour extraire le timestamp et le niveau (ex: "2025-07-17 11:46:33,581 - INFO - ")
+            const match = line.match(/^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d{3}) - (INFO|WARNING|ERROR|DEBUG|CRITICAL) - (.*)$/);
+
+            if (match) {
+              timestamp = match[1];
+              level = match[2];
+              message = match[3];
+            } else {
+              // Si le format ne correspond pas, la ligne entière est le message.
+              // On peut tenter de trouver un niveau même sans timestamp si le format est partiel.
+              const partialLevelMatch = line.match(/(INFO|WARNING|ERROR|DEBUG|CRITICAL):?\s*(.*)$/);
+              if (partialLevelMatch) {
+                  level = partialLevelMatch[1];
+                  message = partialLevelMatch[2];
+              }
+            }
+            return { timestamp, level, message };
+          });
+          setLogs(parsedLogs);
+        } else {
+          console.warn("Les logs reçus ne sont pas une chaîne de caractères:", data.logs);
+          setLogs([]); // Réinitialiser ou gérer l'erreur
+        }
+      } else {
+        console.error(`Erreur lors de la récupération des logs: ${response.statusText}`);
+      }
+    } catch (error) {
+      console.error('Erreur réseau lors de la récupération des logs:', error);
+    }
+  };
 
   const handleGenerateApp = async (event: FormEvent) => {
     event.preventDefault();
-    setGeneratedCode('Génération en cours...');
-    setConsoleOutput('Démarrage de la génération...');
-    setProjectPath(null); // Réinitialiser le chemin du projet
-    setProjectStructure([]);
-    setSelectedFileContent('Sélectionnez un fichier pour voir son contenu.');
-    setSelectedFilePath(null);
+    setLoading(true);
+    setError(null);
+    setProjectFiles({}); // Réinitialiser les fichiers du projet
+    setProjectId(null); // Réinitialiser l'ID du projet
 
     try {
-      const generateResponse = await fetch('http://127.0.0.1:8000/api/generate', {
+      const generateResponse = await fetch('http://127.0.0.1:8000/api/projects/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ text: prompt }),
+        body: JSON.stringify({
+          prompt: prompt,
+          llm_provider: selectedLlmProvider, // Envoyer le fournisseur choisi
+          model_name: selectedModel,       // Envoyer le modèle choisi
+        }),
       });
 
-      if (!generateResponse.ok) {
-        throw new Error(`Erreur HTTP: ${generateResponse.status}`);
-      }
-
-      const generateData = await generateResponse.json();
-      console.log('Réponse génération:', generateData);
-      setGeneratedCode(generateData.generated_code_preview || 'Code généré. Veuillez cliquer sur Aperçu ou recharger.');
-      setProjectPath(generateData.project_path); // Mettre à jour l'état projectPath
-
-      if (generateData.project_path) {
-        console.log('Tentative de récupération de la structure du projet pour:', generateData.project_path);
-        const listFilesResponse = await fetch('http://127.0.0.1:8000/api/list_project_files', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ path: generateData.project_path }),
-        });
-
-        if (!listFilesResponse.ok) {
-          throw new Error(`Erreur HTTP lors de la récupération des fichiers: ${listFilesResponse.status}`);
-        }
-
-        const listFilesData = await listFilesResponse.json();
-        console.log('Structure du projet reçue:', listFilesData);
-        setProjectStructure(listFilesData.project_structure);
-
-        const mainPyNode = findFileNode(listFilesData.project_structure, 'main.py');
-        if (mainPyNode) {
-          // --- MODIFICATION ICI DANS handleGenerateApp ---
-          // Passer generateData.project_path directement, car l'état projectPath pourrait ne pas être à jour.
-          await fetchFileContent(mainPyNode.path, generateData.project_path); 
-          // --- FIN MODIFICATION ---
-        } else {
-            console.warn("main.py non trouvé dans la structure initiale.");
-        }
-
+      if (generateResponse.ok) {
+        const data: ProjectData = await generateResponse.json();
+        setProjectId(data.project_id);
+        setProjectFiles(data.files);
       } else {
-        console.warn("Aucun project_path retourné par l'API /generate.");
+        const errorData = await generateResponse.json();
+        setError(`Erreur lors de la génération de l'application: ${errorData.detail || generateResponse.statusText}`);
       }
-
     } catch (error) {
-      console.error('Erreur lors de la génération ou de la récupération des fichiers:', error);
-      setGeneratedCode(`Erreur: ${error instanceof Error ? error.message : String(error)}`);
-      setConsoleOutput(`Erreur: ${error instanceof Error ? error.message : String(error)}`);
+      console.error('Erreur réseau lors de la génération de l\'application:', error);
+      setError(`Erreur réseau: ${error}`);
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Fonction utilitaire pour trouver un fichier dans la structure (simple pour l'instant)
-  const findFileNode = (nodes: FileNode[], fileName: string): FileNode | undefined => {
-    for (const node of nodes) {
-      if (node.type === 'file' && node.name === fileName) {
-        return node;
-      }
-      if (node.type === 'directory' && node.children) {
-        const found = findFileNode(node.children, fileName);
-        if (found) return found;
-      }
-    }
-    return undefined;
-  };
-
-  // --- DÉBUT DE LA MODIFICATION IMPORTANTE POUR TOUS LES FICHIERS CLIQUÉS ---
-const fetchFileContent = async (relativePathFromProjectRoot: string, currentProjectPath: string | null = null) => {
-    setSelectedFileContent('Chargement du contenu du fichier...');
-    setSelectedFilePath(relativePathFromProjectRoot); 
-
-    // Utilise le projectPath passé en argument en priorité, sinon l'état
-    const actualProjectPath = currentProjectPath || projectPath;
-
-    if (!actualProjectPath) {
-      console.error("projectPath n'est pas défini. Impossible de récupérer le contenu du fichier.");
-      setSelectedFileContent("Erreur: Chemin du projet non défini.");
+  const handleUpdateApp = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!projectId) {
+      setError("Aucun projet sélectionné pour la mise à jour.");
       return;
     }
 
-    const projectFolderName = actualProjectPath.split('/').pop();
-    const fullPathForBackend = `${projectFolderName}/${relativePathFromProjectRoot}`;
-    
+    setLoading(true);
+    setError(null);
+
     try {
-      const response = await fetch('http://127.0.0.1:8000/api/get_file_content', {
+      const updateResponse = await fetch(`http://127.0.0.1:8000/api/projects/${projectId}/generate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ path: fullPathForBackend }),
+        body: JSON.stringify({
+          prompt: prompt,
+          llm_provider: selectedLlmProvider, // Envoyer le fournisseur choisi
+          model_name: selectedModel,       // Envoyer le modèle choisi
+        }),
       });
 
-      if (!response.ok) {
-        throw new Error(`Erreur HTTP lors de la récupération du contenu: ${response.status}`);
+      if (updateResponse.ok) {
+        const data: ProjectData = await updateResponse.json();
+        setProjectFiles(data.files);
+      } else {
+        const errorData = await updateResponse.json();
+        setError(`Erreur lors de la mise à jour de l'application: ${errorData.detail || updateResponse.statusText}`);
       }
-
-      const data = await response.json();
-      setSelectedFileContent(data.content);
     } catch (error) {
-      console.error('Erreur lors de la récupération du contenu du fichier:', error);
-      setSelectedFileContent(`Impossible de charger le fichier: ${error instanceof Error ? error.message : String(error)}`);
+      console.error('Erreur réseau lors de la mise à jour de l\'application:', error);
+      setError(`Erreur réseau: ${error}`);
+    } finally {
+      setLoading(false);
     }
   };
-  // --- FIN DE LA MODIFICATION IMPORTANTE ---
-
 
   const handleRunApp = async () => {
-    if (!projectPath) {
-      alert('Veuillez d\'abord générer une application.');
+    if (!projectId) {
+      setError("Aucun projet sélectionné pour l'exécution.");
       return;
     }
+    setLoading(true);
+    setError(null);
+
     try {
-      const response = await fetch('http://127.00.0.1:8000/api/run_app', {
+      const response = await fetch('http://127.0.0.1:8000/api/runner/run', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ path: projectPath }), // Utilise le chemin absolu du projet
+        body: JSON.stringify({ project_id: projectId }),
       });
-
       if (!response.ok) {
-        throw new Error(`Erreur HTTP: ${response.status}`);
+        const errorData = await response.json();
+        setError(`Erreur lors du lancement de l'application: ${errorData.detail || response.statusText}`);
       }
-
-      const data = await response.json();
-      setConsoleOutput(prev => prev + '\n' + data.message);
     } catch (error) {
-      console.error('Erreur lors du lancement de l\'application:', error);
-      setConsoleOutput(prev => prev + `\nErreur lors du lancement: ${error instanceof Error ? error.message : String(error)}`);
+      console.error('Erreur réseau lors du lancement de l\'application:', error);
+      setError(`Erreur réseau: ${error}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleStopApp = async () => {
+    if (!projectId) {
+      setError("Aucun projet sélectionné pour l'arrêt.");
+      return;
+    }
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch('http://127.0.0.1:8000/api/runner/stop', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ project_id: projectId }),
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        setError(`Erreur lors de l'arrêt de l'application: ${errorData.detail || response.statusText}`);
+      }
+    } catch (error) {
+      console.error('Erreur réseau lors de l\'arrêt de l\'application:', error);
+      setError(`Erreur réseau: ${error}`);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <div className="App">
       <header className="App-header">
-        <h1>App Maker IA</h1>
+        <h1>App Maker PySide6</h1>
       </header>
       <div className="main-layout">
         <div className="left-panel">
@@ -201,73 +301,84 @@ const fetchFileContent = async (relativePathFromProjectRoot: string, currentProj
                 rows={10}
                 cols={50}
               ></textarea>
-              <button type="submit">Générer Application PySide6</button>
+              
+              {/* Nouveaux sélecteurs pour le LLM */}
+              <div style={{ margin: '10px 0', display: 'flex', alignItems: 'center', gap: '15px' }}>
+                <div>
+                  <label htmlFor="llmProvider">Choisir LLM : </label>
+                  <select
+                    id="llmProvider"
+                    value={selectedLlmProvider}
+                    onChange={(e) => setSelectedLlmProvider(e.target.value)}
+                  >
+                    {Object.keys(llmOptions).map(provider => (
+                      <option key={provider} value={provider}>{provider.toUpperCase()}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label htmlFor="llmModel">Modèle : </label>
+                  <select
+                    id="llmModel"
+                    value={selectedModel}
+                    onChange={(e) => setSelectedModel(e.target.value)}
+                    // Désactiver si aucun modèle n'est disponible pour le fournisseur sélectionné
+                    disabled={!llmOptions[selectedLlmProvider] || llmOptions[selectedLlmProvider].length === 0}
+                  >
+                    {llmOptions[selectedLlmProvider]?.map(model => (
+                      <option key={model} value={model}>{model}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <button type="submit" disabled={loading}>Générer Application PySide6</button>
             </form>
+            {projectId && (
+              <button onClick={handleUpdateApp} disabled={loading} style={{ marginTop: '10px' }}>
+                Mettre à jour Application
+              </button>
+            )}
+            {projectId && (
+              <div style={{ marginTop: '10px' }}>
+                <button onClick={handleRunApp} disabled={loading} style={{ marginRight: '10px' }}>
+                  Lancer Application
+                </button>
+                <button onClick={handleStopApp} disabled={loading}>
+                  Arrêter Application
+                </button>
+              </div>
+            )}
           </div>
+          {loading && <p>Chargement...</p>}
+          {error && <p className="error-message">Erreur: {error}</p>}
+
           <div className="terminal-section">
-            <h2>Terminal (Sortie Backend)</h2>
-            <pre className="console-output">{consoleOutput}</pre>
+            <h2>Logs du Backend</h2>
+            <button
+              onClick={() => setIsPollingEnabled(!isPollingEnabled)}
+              style={{ marginBottom: '10px' }}
+            >
+              {isPollingEnabled ? 'Désactiver Polling des Logs' : 'Activer Polling des Logs'}
+            </button>
+            <div className="logs-output">
+              {logs.map((log, index) => (
+                <p key={index} className={`log-level-${log.level.toLowerCase()}`}>
+                  [{log.timestamp}] {log.level}: {log.message}
+                </p>
+              ))}
+              <div ref={logsEndRef} /> {/* Élément pour le défilement */}
+            </div>
           </div>
         </div>
 
         <div className="right-panel">
-          {/* Nouveau: Conteneur principal pour le mode IDE */}
-          <div className="ide-container">
-            <div className="file-explorer-pane">
-              <h2>Explorateur de Fichiers</h2>
-              {/* Ici, nous allons rendre l'explorateur de fichiers */}
-              {projectStructure.length === 0 ? (
-                <p>Aucun projet généré ou structure non disponible.</p>
-              ) : (
-                <FileList nodes={projectStructure} onFileClick={fetchFileContent} selectedFilePath={selectedFilePath} />
-              )}
-            </div>
-            <div className="code-editor-pane">
-              <h2>{selectedFilePath ? `Code de ${selectedFilePath.split('/').pop()}` : 'Code du Fichier'}</h2>
-              <textarea
-                className="code-display"
-                value={selectedFileContent}
-                readOnly
-                rows={25}
-                cols={80}
-              ></textarea>
-              <button onClick={handleRunApp} disabled={!projectPath}>Lancer l'Application</button>
-            </div>
-          </div>
+          {projectId && <FileList projectId={projectId} files={projectFiles} />}
         </div>
       </div>
     </div>
   );
 }
-
-// Composant FileList pour afficher récursivement les fichiers et dossiers
-// Tu devras créer ce fichier séparément : app_maker_frontend/src/components/FileList.tsx
-interface FileListProps {
-  nodes: FileNode[];
-  onFileClick: (path: string) => void;
-  selectedFilePath: string | null;
-}
-
-function FileList({ nodes, onFileClick, selectedFilePath }: FileListProps) {
-  return (
-    <ul className="file-list">
-      {nodes.map((node) => (
-        <li key={node.path} className={node.type === 'directory' ? 'folder-item' : 'file-item'}>
-          <span
-            className={`file-name ${node.type === 'file' ? 'clickable' : ''} ${selectedFilePath === node.path ? 'selected' : ''}`}
-            onClick={() => node.type === 'file' && onFileClick(node.path)}
-          >
-            {node.type === 'directory' ? '📁 ' : '📄 '}
-            {node.name}
-          </span>
-          {node.type === 'directory' && node.children && node.children.length > 0 && (
-            <FileList nodes={node.children} onFileClick={onFileClick} selectedFilePath={selectedFilePath} />
-          )}
-        </li>
-      ))}
-    </ul>
-  );
-}
-
 
 export default App;

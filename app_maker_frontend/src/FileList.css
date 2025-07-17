@@ -1,0 +1,76 @@
+/* app_maker_frontend/src/FileList.css */
+.file-list-container {
+    background-color: #282c34;
+    color: white;
+    padding: 20px;
+    border-radius: 8px;
+    overflow-y: auto;
+    max-height: calc(100vh - 120px); /* Ajustez selon votre layout */
+    width: 100%; /* S'assure qu'il prend toute la largeur disponible */
+    box-sizing: border-box; /* Inclut le padding dans la largeur/hauteur */
+}
+
+.file-list-container h2 {
+    color: #61dafb;
+    margin-top: 0;
+    margin-bottom: 15px;
+}
+
+.file-names-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 20px;
+}
+
+.file-name-button {
+    background-color: #444;
+    color: white;
+    border: 1px solid #666;
+    padding: 8px 12px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.9em;
+    transition: background-color 0.2s, border-color 0.2s;
+}
+
+.file-name-button:hover {
+    background-color: #555;
+    border-color: #61dafb;
+}
+
+.file-name-button.active {
+    background-color: #61dafb;
+    color: #282c34;
+    border-color: #61dafb;
+    font-weight: bold;
+}
+
+.file-content-display {
+    background-color: #1e1e1e;
+    border: 1px solid #333;
+    border-radius: 5px;
+    padding: 15px;
+    font-family: 'Fira Code', 'Cascadia Code', monospace; /* Utilise une police monospace */
+    white-space: pre-wrap; /* Préserve les espaces et les retours à la ligne */
+    word-wrap: break-word; /* Permet de casser les mots longs */
+    max-height: 500px; /* Limite la hauteur pour un défilement */
+    overflow-y: auto; /* Ajoute un défilement si le contenu dépasse */
+}
+
+.file-content-display h3 {
+    color: #a0a0a0;
+    margin-top: 0;
+    margin-bottom: 10px;
+    border-bottom: 1px solid #333;
+    padding-bottom: 5px;
+}
+
+.file-content-display pre {
+    margin: 0;
+}
+
+.file-content-display code {
+    color: #e0e0e0;
+    /* Ajoutez ici des styles de coloration syntaxique si vous utilisez une bibliothèque comme react-syntax-highlighter */
+}
