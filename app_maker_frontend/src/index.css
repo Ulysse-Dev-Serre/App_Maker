@@ -5,7 +5,7 @@
 
   color-scheme: light dark;
   color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+  background-color: #242424; /* Couleur de fond par défaut */
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -24,10 +24,23 @@ a:hover {
 
 body {
   margin: 0;
-  display: flex;
-  place-items: center;
   min-width: 320px;
   min-height: 100vh;
+  width: 100vw; /* CHANGEMENT: S'assurer que le body prend toute la largeur de la vue */
+  overflow: hidden; /* CHANGEMENT: Empêche le défilement du body */
+  display: flex; /* CHANGEMENT: Ajouté pour que #root puisse prendre toute la hauteur */
+  flex-direction: column; /* CHANGEMENT: Ajouté pour que #root puisse prendre toute la hauteur */
+}
+
+#root {
+  width: 100vw; /* CHANGEMENT: Assure qu'il prend toute la largeur de la vue */
+  min-height: 100vh; /* CHANGEMENT: Assure qu'il prend toute la hauteur de la vue */
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  background-color: #202020; /* Fond sombre général */
+  flex: 1; /* CHANGEMENT: Permet à #root de prendre toute la hauteur disponible */
 }
 
 h1 {
@@ -43,11 +56,13 @@ button {
   font-weight: 500;
   font-family: inherit;
   background-color: #1a1a1a;
+  color: white; /* CHANGEMENT: Couleur de texte par défaut pour les boutons */
   cursor: pointer;
-  transition: border-color 0.25s;
+  transition: border-color 0.25s, background-color 0.25s;
 }
 button:hover {
   border-color: #646cff;
+  background-color: #2a2a2a; /* CHANGEMENT: Légèrement plus clair au survol */
 }
 button:focus,
 button:focus-visible {

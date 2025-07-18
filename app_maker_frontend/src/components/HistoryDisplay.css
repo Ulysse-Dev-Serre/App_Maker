@@ -1,0 +1,67 @@
+/* app_maker_frontend/src/components/HistoryDisplay.css */
+.history-section {
+    background-color: #2e2e2e;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.2);
+    flex-grow: 1; /* Permet à l'historique de prendre l'espace disponible */
+    overflow-y: auto; /* Défilement interne */
+    max-height: 300px; /* Hauteur max si besoin */
+    min-height: 100px;
+    margin-bottom: 20px;
+    width: 100%;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.history-section h3 {
+    color: #a0a0a0;
+    margin-top: 0;
+    margin-bottom: 10px;
+    border-bottom: 1px solid #444;
+    padding-bottom: 5px;
+    text-align: center;
+}
+
+.history-entry {
+    margin-bottom: 15px;
+    padding: 10px;
+    border-radius: 5px;
+}
+
+.history-entry.user-prompt {
+    background-color: #3a4a5a;
+    border-left: 3px solid #61dafb;
+}
+
+.history-entry.llm-response {
+    background-color: #4a3a5a;
+    border-left: 3px solid #b361fb;
+}
+
+.history-entry p {
+    margin: 0 0 5px 0;
+    font-size: 0.9em;
+}
+
+.history-entry pre {
+    background-color: #1a1a1a;
+    padding: 8px;
+    border-radius: 4px;
+    overflow-x: auto;
+    font-size: 0.8em;
+}
+
+.history-entry .timestamp {
+    font-size: 0.75em;
+    color: #999;
+    text-align: right;
+    margin-top: 5px;
+}
+
+/* Media Queries spécifiques au composant */
+@media (max-width: 480px) {
+  .history-entry p, .history-entry pre {
+    font-size: 0.8em;
+  }
+}

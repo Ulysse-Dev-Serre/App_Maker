@@ -1,4 +1,5 @@
 import React from 'react';
+import './HistoryDisplay.css';
 
 // Interfaces pour les entrées d'historique (doivent correspondre à celles de App.tsx)
 interface HistoryEntry {

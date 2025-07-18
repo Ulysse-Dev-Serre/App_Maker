@@ -1,4 +1,5 @@
 import React from 'react';
+import './ProblemDisplay.css';
 
 interface ProblemData {
   type: string;

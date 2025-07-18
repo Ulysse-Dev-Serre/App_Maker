@@ -4,9 +4,12 @@
     color: #f0f0f0;
     padding: 15px;
     border-right: 1px solid #444;
-    overflow-y: auto;
+    overflow-y: auto; /* Permet le défilement si l'explorateur est trop grand */
     width: 250px; /* Largeur fixe pour l'explorateur */
+    flex-shrink: 0; /* Empêche l'explorateur de rétrécir dans le flex container */
     box-shadow: 2px 0 5px rgba(0, 0, 0, 0.2);
+    display: flex; /* AJOUTÉ: Pour que le h2 et le file-tree soient en colonne */
+    flex-direction: column; /* AJOUTÉ: Pour que le h2 et le file-tree soient en colonne */
 }
 
 .file-explorer h2 {
@@ -14,11 +17,14 @@
     margin-top: 0;
     margin-bottom: 15px;
     text-align: center;
+    flex-shrink: 0; /* Empêche le titre de rétrécir */
 }
 
 .file-tree {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     font-size: 0.95em;
+    flex-grow: 1; /* DOIT ÊTRE flex-grow: 1 */
+    overflow-y: auto; /* DOIT ÊTRE auto */
 }
 
 .tree-item {

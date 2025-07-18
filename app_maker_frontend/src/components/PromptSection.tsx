@@ -1,5 +1,6 @@
 import React from 'react';
 import ProjectHistoryDisplay from './ProjectHistoryDisplay';
+import './PromptSection.css'; // Assurez-vous que cet import est présent
 
 interface LlmOptions {
   [provider: string]: string[];
@@ -56,7 +57,7 @@ const PromptSection: React.FC<PromptSectionProps> = ({
   projectHistory,
 }) => {
   return (
-    <div className="prompt-section" style={{ display: 'flex', flexDirection: 'column', flex: 1 }}> {/* NOUVEAU: Ajout de styles flex */}
+    <div className="prompt-section">
       <h2>Ton Prompt</h2>
       {currentProjectName && (
         <div style={{ marginBottom: '15px', padding: '10px', backgroundColor: '#3a3a3a', borderRadius: '5px', color: '#f0f0f0', textAlign: 'center' }}>
@@ -64,19 +65,19 @@ const PromptSection: React.FC<PromptSectionProps> = ({
         </div>
       )}
 
-      {projectId && <ProjectHistoryDisplay projectHistory={projectHistory} />}
+      {/* Rendu de l'historique du projet ici, à l'intérieur de PromptSection */}
+      {projectId && <ProjectHistoryDisplay projectHistory={projectHistory} />} {/* <--- RÉACTIVÉ ICI */}
       
-      <form onSubmit={handleGenerateApp} style={{ display: 'flex', flexDirection: 'column', flex: 1 }}> {/* NOUVEAU: Ajout de styles flex */}
+      <form onSubmit={handleGenerateApp}>
         <textarea
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
           placeholder="Décris l'application PySide6 que tu souhaites créer ici..."
           rows={10}
           cols={50}
-          style={{ flex: 1 }} /* NOUVEAU: Permet au textarea de prendre l'espace */
         ></textarea>
         
-        <div style={{ margin: '10px 0', display: 'flex', alignItems: 'center', gap: '15px' }}>
+        <div className="llm-selectors">
           <div>
             <label htmlFor="llmProvider">Choisir LLM : </label>
             <select

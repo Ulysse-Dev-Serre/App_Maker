@@ -1,21 +1,11 @@
 /* app_maker_frontend/src/App.css */
-#root {
-  max-width: 100vw;
-  margin: 0;
-  padding: 0;
-  text-align: center;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  background-color: #202020; /* Fond sombre général */
-  width: 100%;
-}
 
 .App {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  flex: 1; /* Permet à .App de prendre toute la hauteur disponible après le header */
   width: 100%;
+  overflow: hidden; /* Empêche le défilement de .App, le défilement sera sur les panneaux internes */
 }
 
 .App-header {
@@ -28,6 +18,7 @@
   align-items: center;
   justify-content: center;
   position: relative;
+  flex-shrink: 0; /* Empêche le header de rétrécir */
 }
 
 .App-header h1 {
@@ -60,274 +51,36 @@
   cursor: not-allowed;
 }
 
-
 .main-layout {
   display: flex;
-  flex: 1;
+  flex: 1; /* Permet au main-layout de prendre tout l'espace vertical restant */
   width: 100%;
-  overflow: hidden;
-  flex-direction: row; /* Par défaut, les panneaux sont côte à côte */
+  overflow: hidden; /* Empêche le défilement du main-layout */
+  flex-direction: row; /* Panneaux côte à côte par défaut */
 }
 
 .center-panel {
   display: flex;
   flex-direction: column;
-  flex: 1;
-  padding: 20px;
-  gap: 20px;
-  overflow-y: auto;
+  flex: 1; /* Prend 1/3 de la largeur disponible */
+  padding: 10px; /* Réduire le padding pour laisser plus de place au contenu */
+  gap: 10px; /* Réduire le gap */
+  overflow-y: auto; /* Permet le défilement interne si le contenu dépasse */
   background-color: #202020;
-  /* ANCIEN: align-items: center; */ /* Supprimé */
-  /* ANCIEN: justify-content: center; */ /* Supprimé */
 }
-
 
 .ide-panel {
   display: flex;
-  flex-direction: column;
-  flex: 1; /* Prend 50% de la largeur disponible */
+  flex-direction: row; /* Explorateur et éditeur côte à côte */
+  flex: 2; /* Prend 2/3 de la largeur disponible */
   background-color: #1e1e1e;
   border-left: 1px solid #444;
-  overflow: hidden;
+  overflow: hidden; /* Empêche le défilement de l'ide-panel, géré par les enfants */
+  /* AJOUTÉ: Assure que l'ide-panel prend la hauteur restante de main-layout */
+  height: 100%;
 }
-
-/* Styles pour les sections à l'intérieur des panneaux */
-.prompt-section, .terminal-section {
-  background-color: #282c34;
-  padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-  color: white;
-  text-align: left; /* Réinitialise le texte à gauche pour ces sections */
-  width: 100%; /* S'assure que ces sections prennent toute la largeur de center-panel */
-  max-width: 800px; /* Optionnel: limite la largeur des sections pour la lisibilité sur grands écrans */
-}
-
-.prompt-section h2, .terminal-section h2 {
-  color: #61dafb;
-  margin-top: 0;
-  margin-bottom: 15px;
-}
-
-textarea {
-  width: calc(100% - 20px);
-  padding: 10px;
-  margin-bottom: 15px;
-  border-radius: 5px;
-  border: 1px solid #444;
-  background-color: #333;
-  color: white;
-  font-family: monospace;
-  resize: vertical;
-}
-
-/* Ajustements pour les boutons dans prompt-section */
-.prompt-section .button-group {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    margin-top: 10px;
-    justify-content: center;
-}
-
-.prompt-section button {
-    padding: 8px 15px;
-    font-size: 0.9em;
-    flex-shrink: 0;
-}
-
-/* Styles pour la section de l'historique */
-.history-section {
-    background-color: #2e2e2e;
-    padding: 15px;
-    border-radius: 8px;
-    box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.2);
-    flex-grow: 1;
-    overflow-y: auto;
-    max-height: 300px;
-    min-height: 100px;
-    margin-bottom: 20px;
-    width: 100%; /* S'assure qu'il prend toute la largeur de son parent */
-    max-width: 800px; /* Optionnel: limite la largeur pour la lisibilité */
-}
-
-.history-section h3 {
-    color: #a0a0a0;
-    margin-top: 0;
-    margin-bottom: 10px;
-    border-bottom: 1px solid #444;
-    padding-bottom: 5px;
-    text-align: center;
-}
-
-.history-entry {
-    margin-bottom: 15px;
-    padding: 10px;
-    border-radius: 5px;
-}
-
-.history-entry.user-prompt {
-    background-color: #3a4a5a;
-    border-left: 3px solid #61dafb;
-}
-
-.history-entry.llm-response {
-    background-color: #4a3a5a;
-    border-left: 3px solid #b361fb;
-}
-
-.history-entry p {
-    margin: 0 0 5px 0;
-    font-size: 0.9em;
-}
-
-.history-entry pre {
-    background-color: #1a1a1a;
-    padding: 8px;
-    border-radius: 4px;
-    overflow-x: auto;
-    font-size: 0.8em;
-}
-
-.history-entry .timestamp {
-    font-size: 0.75em;
-    color: #999;
-    text-align: right;
-    margin-top: 5px;
-}
-
-/* Ajustements pour la section des logs - maintenant dans le flux */
-.terminal-section {
-  width: 100%;
-  max-height: 200px;
-  overflow-y: auto;
-  padding: 15px;
-  box-sizing: border-box;
-  max-width: 800px; /* Optionnel: limite la largeur pour la lisibilité */
-}
-
-.logs-output {
-  background-color: #1a1a1a;
-  border: 1px solid #333;
-  border-radius: 5px;
-  padding: 10px;
-  font-family: monospace;
-  white-space: pre-wrap;
-  word-break: break-all;
-  max-height: 120px;
-  overflow-y: auto;
-  color: #eee;
-  text-align: left;
-}
-
-.logs-output p {
-    margin: 0;
-    padding: 2px 0;
-    font-size: 0.85em;
-}
-
-.log-level-info { color: #88dd88; }
-.log-level-warning { color: #ffcc00; }
-.log-level-error { color: #ff6666; }
-.log-level-debug { color: #99ccff; }
-.log-level-critical { color: #ff0000; font-weight: bold; }
-.log-level-unknown { color: #aaaaaa; }
-
-
-/* Styles pour l'éditeur de code */
-.code-editor-pane {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    background-color: #1e1e1e;
-    padding: 15px;
-    color: white;
-    overflow-y: auto;
-}
-
-.code-editor-pane h2 {
-    color: #61dafb;
-    margin-top: 0;
-    margin-bottom: 15px;
-    text-align: center;
-}
-
-.code-display {
-    flex: 1;
-    width: calc(100% - 20px);
-    padding: 10px;
-    border-radius: 5px;
-    border: 1px solid #444;
-    background-color: #222;
-    color: #f0f0f0;
-    font-family: 'Fira Code', 'Cascadia Code', monospace;
-    font-size: 0.9em;
-    resize: none;
-    min-height: 200px;
-}
-
-.llm-selectors {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    margin-bottom: 15px;
-}
-
-.llm-selectors label {
-    margin-right: 5px;
-    color: #f0f0f0;
-}
-
-.llm-selectors select {
-    padding: 8px 12px;
-    border-radius: 5px;
-    border: 1px solid #444;
-    background-color: #333;
-    color: white;
-    font-size: 0.9em;
-    cursor: pointer;
-}
-
-.llm-selectors select:focus {
-    outline: none;
-    border-color: #61dafb;
-    box-shadow: 0 0 0 2px rgba(97, 218, 251, 0.3);
-}
-
-/* NOUVEAU: Styles pour le conteneur du message de bienvenue */
-.welcome-message-container {
-  background-color: #282c34;
-  padding: 40px;
-  border-radius: 8px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-  color: white;
-  text-align: center;
-  max-width: 600px; /* Limite la largeur du message */
-  margin: auto; /* Centre le conteneur dans le center-panel */
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  min-height: 200px; /* Hauteur minimale pour le message */
-}
-
-.welcome-message-container h2 {
-  color: #61dafb;
-  font-size: 2em;
-  margin-bottom: 20px;
-}
-
-.welcome-message-container p {
-  font-size: 1.1em;
-  line-height: 1.6;
-  margin-bottom: 15px;
-  color: #e0e0e0;
-}
-
 
 /* Media Queries pour la responsivité */
-
-/* Pour les écrans plus petits (tablettes et mobiles) */
 @media (max-width: 768px) {
   .main-layout {
     flex-direction: column;
@@ -343,34 +96,14 @@ textarea {
   .ide-panel {
     border-left: none;
     border-top: 1px solid #444;
+    flex-direction: column; /* Pour empiler l'explorateur et l'éditeur sur mobile */
+    height: auto; /* Sur mobile, la hauteur peut s'adapter au contenu */
   }
 
   .sidebar-toggle-button {
     left: 10px;
     padding: 6px 12px;
     font-size: 0.8em;
-  }
-
-  .terminal-section {
-    position: relative;
-    bottom: auto;
-    left: auto;
-    width: 100%;
-    max-height: 150px;
-    margin-top: 20px;
-  }
-
-  .welcome-message-container {
-    padding: 20px;
-    min-height: 150px;
-  }
-
-  .welcome-message-container h2 {
-    font-size: 1.5em;
-  }
-
-  .welcome-message-container p {
-    font-size: 0.9em;
   }
 }
 
@@ -383,29 +116,5 @@ textarea {
   .App-header h1 {
     font-size: 1.5em;
   }
-
-  .prompt-section, .terminal-section {
-    padding: 15px;
-  }
-
-  .prompt-section button {
-    padding: 6px 10px;
-    font-size: 0.8em;
-  }
-
-  .llm-selectors {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 10px;
-  }
-
-  textarea, .code-display {
-    font-size: 0.8em;
-  }
-
-  .history-entry p, .history-entry pre {
-    font-size: 0.8em;
-  }
 }
-
 

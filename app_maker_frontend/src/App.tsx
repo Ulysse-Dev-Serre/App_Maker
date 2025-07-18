@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import './App.css';
+import './App.css'; // Importe les styles de layout globaux
 
 // Import des hooks personnalisés
 import { useLlmOptions } from './hooks/useLlmOptions';
@@ -14,7 +14,8 @@ import FileExplorer from './components/FileExplorer';
 import PromptSection from './components/PromptSection';
 import TerminalSection from './components/TerminalSection';
 import ProblemDisplay from './components/ProblemDisplay';
-// import WelcomePanel from './components/WelcomePanel'; // RETIRÉ
+import CodeEditor from './components/CodeEditor';
+import ProjectHistoryDisplay from './components/ProjectHistoryDisplay'; // L'import reste nécessaire pour PromptSection
 
 // Interface pour les entrées d'historique
 interface HistoryEntry {
@@ -194,8 +195,7 @@ function App() {
 
       <div className="main-layout">
         <div className="center-panel">
-          {/* Toujours afficher PromptSection et TerminalSection, même si projectId est null */}
-          {/* PromptSection gérera l'affichage du bouton "Générer" vs "Mettre à jour" selon projectId */}
+          {/* Section de prompt et boutons */}
           <PromptSection
             prompt={prompt}
             setPrompt={setPrompt}
@@ -204,7 +204,7 @@ function App() {
             setSelectedLlmProvider={setSelectedLlmProvider}
             selectedModel={selectedModel}
             setSelectedModel={setSelectedModel}
-            projectId={projectId} // sera null si aucun projet n'est sélectionné
+            projectId={projectId}
             loading={overallLoading}
             handleGenerateApp={handleGenerateApp}
             handleUpdateApp={handleUpdateApp}
@@ -216,11 +216,17 @@ function App() {
             projectHistory={projectHistory}
           />
 
+          {/* Affichage des messages de chargement et d'erreur généraux */}
           {overallLoading && <p>Chargement...</p>}
           {overallError && <p className="error-message">Erreur: {overallError}</p>}
           
+          {/* Affichage des problèmes spécifiques au projet */}
           <ProblemDisplay currentProblem={currentProblem} />
 
+          {/* L'historique du projet est maintenant rendu DANS PromptSection.tsx */}
+          {/* {projectId && <ProjectHistoryDisplay projectHistory={projectHistory} />} */} {/* <--- SUPPRIMER CETTE LIGNE */}
+
+          {/* Section des logs du backend */}
           <TerminalSection
             logs={logs}
             isPollingEnabled={isPollingEnabled}
@@ -228,7 +234,7 @@ function App() {
             logsEndRef={logsEndRef}
           />
 
-          {/* Si vous voulez un message de "chargement" très simple, gardez ceci */}
+          {/* Message de "chargement" initial si aucun projet n'est encore chargé */}
           {(!initialLoadAttempted || projectsLoading) && (
              <p style={{ textAlign: 'center', color: '#f0f0f0', fontSize: '1.2em', marginTop: '50px' }}>Chargement...</p>
           )}
@@ -246,13 +252,16 @@ function App() {
             />
             <div className="code-editor-pane">
               <h2>{selectedFileName ? `Code de ${selectedFileName}` : 'Sélectionnez un fichier'}</h2>
-              <textarea
-                className="code-display"
-                value={selectedFileName ? projectFiles[selectedFileName] || '' : 'Sélectionnez un fichier pour voir son contenu.'}
-                readOnly
-                rows={25}
-                cols={80}
-              ></textarea>
+              {selectedFileName ? (
+                <CodeEditor
+                  value={projectFiles[selectedFileName] || ''}
+                  readOnly={true}
+                />
+              ) : (
+                <div className="code-display" style={{ padding: '20px', color: '#888', textAlign: 'center', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  Sélectionnez un fichier pour voir son contenu.
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -262,3 +271,4 @@ function App() {
 }
 
 export default App;
+
