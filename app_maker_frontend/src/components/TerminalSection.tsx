@@ -1,41 +1,61 @@
 // src/components/TerminalSection.tsx
 import React, { memo, useEffect, useRef } from 'react';
 
-// Types d'interface pour le TerminalSection
-interface TerminalSectionProps {
-  logs: string[]; // Logs à afficher (provenant de useLogs dans App.tsx)
-  isPollingEnabled: boolean; // État d'activation du polling (non utilisé directement ici pour l'affichage)
-  setIsPollingEnabled: (enabled: boolean) => void; // Fonction pour changer l'état du polling (non utilisé directement ici pour l'affichage)
-  logsEndRef: React.RefObject<HTMLDivElement>; // Référence pour le défilement automatique
+interface LogEntry {
+  timestamp: string;
+  level: string;
+  message: string;
 }
 
-const TerminalSectionComponent = memo(({
-  logs,
-  logsEndRef,
-}: TerminalSectionProps) => {
+interface Props {
+  logs: LogEntry[];
+  logsEndRef: React.RefObject<HTMLDivElement>;
+  currentProblem: any; // same shape as before
+}
 
-  // Effet pour faire défiler le terminal vers le bas lorsque de nouveaux logs arrivent
+const TerminalSection = memo(({ logs, logsEndRef, currentProblem }: Props) => {
+  const lines = useRef<string[]>([]);
+
+  // Build fake shell transcript
   useEffect(() => {
-    if (logsEndRef.current) {
-      logsEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    const shell: string[] = [];
+    logs.forEach((l) => {
+      // Convert backend log -> shell line
+      if (l.message.includes('Lancement de l’application')) {
+        shell.push('$ python main.py');
+      } else if (l.message.includes('Environnement virtuel non trouvé')) {
+        shell.push('$ python3 -m venv .venv');
+        shell.push('$ source .venv/bin/activate');
+        shell.push('$ pip install -r requirements.txt');
+      } else {
+        shell.push(`[${l.level}] ${l.message}`);
+      }
+    });
+
+    if (currentProblem) {
+      shell.push(''); // blank line
+      shell.push(`>>> ${currentProblem.type} : ${currentProblem.message}`);
+      shell.push(currentProblem.details || '');
     }
-  }, [logs, logsEndRef]);
+
+    lines.current = shell;
+  }, [logs, currentProblem]);
 
   return (
-    <div className="h-full w-full bg-gray-950 rounded-lg overflow-hidden flex flex-col">
-      <h3 className="text-lg font-semibold text-teal-400 p-3 border-b border-gray-800 bg-gray-900 flex-shrink-0">
+    <div className="flex flex-col h-full bg-gray-950 text-green-400 font-mono text-sm">
+      <div className="px-3 py-1 bg-gray-800 text-teal-300 border-b border-gray-700">
         Terminal
-      </h3>
-      <div className="flex-1 overflow-y-auto modern-scrollbar p-3 text-gray-200 font-mono text-sm">
-        {logs.map((log, index) => (
-          // Utilisation de <pre> pour préserver les retours à la ligne et les espaces
-          // et application de classes Tailwind pour le style
-          <pre key={index} className="whitespace-pre-wrap break-words font-mono text-sm text-gray-200">{log}</pre>
+      </div>
+      <div className="flex-1 overflow-y-auto p-3 whitespace-pre-wrap">
+        {lines.current.map((line, i) => (
+          <div key={i} className="leading-tight">
+            {line}
+          </div>
         ))}
-        <div ref={logsEndRef} /> {/* Pour le défilement automatique */}
+        <div ref={logsEndRef} />
       </div>
     </div>
   );
 });
-
-export default TerminalSectionComponent
+TerminalSection.displayName = 'TerminalSection';
+export default TerminalSection;

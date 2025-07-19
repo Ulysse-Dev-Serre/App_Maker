@@ -1,139 +1,152 @@
-# Résumé des Étapes de Développement pour `app_maker`
 
-Ce document récapitule les principales étapes et corrections effectuées pour mettre en place le backend FastAPI et le frontend React de l'application `app_maker`, permettant la génération et la prévisualisation d'applications PySide6.
+L’objectif principal de cette application est de fournir à l’utilisateur un outil interactif pour générer, visualiser, exécuter et déboguer des applications de bureau PySide6 en utilisant des modèles de langage (LLM). L’utilisateur interagit principalement via des prompts textuels et des boutons d’action.
 
-## 1. Initialisation et Structure du Projet
+L’application se veut un outil où l’utilisateur peut :
 
-* **Objectif :** Mettre en place un projet avec un backend Python (FastAPI) et un frontend JavaScript (React/Vite).
-* **Structure :** Création de deux dossiers principaux :
-    * `app_maker_backend/` : Contient le code du serveur FastAPI.
-    * `app_maker_frontend/` : Contient le code de l'interface utilisateur React.
-* **Environnements Virtuels :** Utilisation de `venv` (pour Python) et `npm` (pour Node.js) pour gérer les dépendances de manière isolée.
+-Décrire l’application PySide6 souhaitée via un prompt.
+-Voir le code généré par le LLM dans un IDE simplifié.
+-Lancer et arrêter l’application PySide6 générée.
+-Visualiser les fichiers du projet dans une arborescence.
+-Consulter l’historique de ses interactions (prompts et réponses du LLM).
+-Voir les logs d’exécution du backend et de l’application PySide6.
+-Identifier et potentiellement résoudre les problèmes rencontrés par l’application générée.
+Architecture Technique de l’Application
 
-## 2. Développement du Backend (FastAPI)
+L’application est divisée en deux parties principales :
+Frontend   | React 18 + TypeScript + Tailwind CSS
+Backend    | FastAPI (Python 3.11) 
 
-Le backend est responsable de la logique de génération, de la gestion des fichiers, du lancement des applications PySide6 et de la fourniture des logs au frontend.
+## 📁 Arborescence du projet
+```text
+├── app_maker_backend
+│   ├── api
+│   │   ├── files.py
+│   │   ├── __init__.py
+│   │   ├── log.py
+│   │   ├── projects.py
+│   │   └── runner.py
+│   ├── core
+│   │   ├── app_runner.py
+│   │   ├── config.py
+│   │   ├── __init__.py
+│   │   ├── llm_service.py
+│   │   ├── logging_config.py
+│   │   └── project_manager.py
+│   ├── generated_projects
+│   │   ├── 014f8df3-3a73-4e45-84a6-fb9a800c540a
+│   │   │   ├── history.json
+│   │   │   └── main.py
+│   │   ├── 47778153-e7f6-4426-ac73-50bbb0e143ad
+│   │   │   ├── history.json
+│   │   │   └── main.py
+│   │   └── b3472f9b-c105-4451-bf04-5dcbed39bd7d
+│   │       ├── history.json
+│   │       └── main.py
+│   ├── __init__.py
+│   ├── logs
+│   │   ├── app_maker_2025-07-18.log
+│   │   ├── app_maker_2025-07-19.log
+│   │   └── frontend_logs.json
+│   ├── main.py
+│   ├── readme.md
+│   └── requirements.txt
+├── app_maker_frontend
+│   ├── api.ts
+│   ├── eslint.config.js
+│   ├── index.html
+│   ├── package.json
+│   ├── package-lock.json
+│   ├── README.md
+│   ├── src
+│   │   ├── App.tsx
+│   │   ├── components
+│   │   │   ├── CodeEditor.tsx
+│   │   │   ├── FileExplorer.tsx
+│   │   │   ├── ProblemDisplay.tsx
+│   │   │   ├── ProjectHistoryDisplay.tsx
+│   │   │   ├── ProjectSidebar.tsx
+│   │   │   ├── PromptSection.tsx
+│   │   │   └── TerminalSection.tsx
+│   │   ├── hooks
+│   │   │   ├── useAppActions.ts
+│   │   │   ├── useLlmOptions.ts
+│   │   │   ├── useLogs.ts
+│   │   │   ├── useProblemStatus.ts
+│   │   │   └── useProjects.ts
+│   │   ├── index.css
+│   │   ├── lib
+│   │   ├── main.tsx
+│   │   ├── types
+│   │   │   └── api.ts
+│   │   └── vite-env.d.ts
+│   ├── tsconfig.app.json
+│   ├── tsconfig.json
+│   ├── tsconfig.node.json
+│   └── vite.config.ts
+└── README.md
+```
 
-### a. Fichier `main.py` (Backend)
+## 🔌 API principale (FastAPI)
 
-Ce fichier contient la logique principale du serveur FastAPI.
+| Endpoint                            | Méthode | Description                            |
+|-------------------------------------|---------|----------------------------------------|
+| `GET /api/projects/`                | GET     | Lister tous les projets                |
+| `POST /api/projects/`               | POST    | Créer un nouveau projet                |
+| `POST /api/projects/{id}/generate`  | POST    | Générer / mettre à jour / corriger     |
+| `POST /api/runner/run`              | POST    | Lancer l’application PySide6           |
+| `POST /api/runner/stop`             | POST    | Arrêter l’application en cours         |
+| `GET /api/projects/{id}/files`      | GET     | Liste des fichiers du projet           |
+| `GET /api/projects/{id}/history`    | GET     | Historique des prompts & modifications |
+| `GET /api/projects/{id}/problem_status` | GET  | Rapport de crash / erreur              |
 
-* **Initialisation :**
-    * Définition de l'application FastAPI : `app = FastAPI()`.
-    * Déclaration de la variable globale `pyside_app_process = None` pour gérer le processus de l'application PySide6 lancée.
-    * Déclaration de `global_logs = []` pour stocker les messages de log à envoyer au frontend.
+---
 
-* **Configuration CORS :**
-    * Ajout de la `CORSMiddleware` pour permettre au frontend (ex: `http://localhost:5173`) de communiquer avec le backend (`http://127.0.0.1:8000`).
-    * `origins = ["http://localhost", "http://localhost:5173"]` a été configuré.
 
-* **Endpoints Implémentés :**
+## 🖥️ Interface utilisateur (React)
 
-    1.  `GET /` : Endpoint racine simple (`read_root`).
-    2.  `POST /api/generate` :
-        * **Rôle :** Prend un `prompt` textuel du frontend.
-        * **Fonctionnement :**
-            * Génère un nom de projet unique basé sur un timestamp (`pyside_app_timestamp`).
-            * Crée un dossier pour le projet généré sous `generated_projects/`.
-            * Crée un fichier `main.py` simulé à l'intérieur de ce dossier avec un code PySide6 basique (fenêtre, label, bouton).
-            * Retourne le chemin relatif du projet et du fichier `main.py` au frontend.
-            * Ajoute des messages aux `global_logs` pour suivre la progression.
+### 1. Sidebar
+- liste des projets  
+- renommer / supprimer 
 
-    3.  `POST /api/get_file_content` :
-        * **Rôle :** Prend un chemin de fichier relatif.
-        * **Fonctionnement :** Lit le contenu du fichier spécifié (avec des vérifications de sécurité pour éviter le "path traversal") et le renvoie au frontend pour affichage.
+### 2. PromptSection (panneau gauche)
+- textarea pour le prompt  
+- sélecteur de modèle LLM  
+- boutons :
+  - **Générer**
+  - **Mettre à jour**
+  - **Lancer**
+  - **Arrêter**
+  - **Fix Bug**
 
-    4.  `POST /api/run_app` :
-        * **Rôle :** Lance l'application PySide6 générée.
-        * **Fonctionnement :**
-            * Utilise `global pyside_app_process` et `global_logs`.
-            * **Gestion des processus existants :** Vérifie si une application PySide6 est déjà en cours d'exécution. Si oui, tente de la terminer (`.terminate()`, puis `.kill()` si nécessaire après un timeout) avant d'en lancer une nouvelle.
-            * **Environnement Virtuel (venv) :**
-                * Vérifie l'existence d'un `.venv` spécifique au projet généré.
-                * Si non existant, le crée en exécutant `python -m venv .venv` dans le dossier du projet.
-                * Détecte l'exécutable Python correct dans le venv (`bin/python` pour Linux/macOS, `Scripts/python.exe` pour Windows) en utilisant `sys.platform`. **Correction cruciale :** Ajout de `import sys` en haut du fichier pour éviter `NameError`.
-            * **Installation de PySide6 :** Installe `PySide6` dans l'environnement virtuel du projet (`python -m pip install PySide6`).
-            * **Lancement de l'application :** Lance le `main.py` de l'application PySide6 dans un **processus séparé et non bloquant** (`subprocess.Popen`), assurant que le backend FastAPI reste réactif.
-            * Ajoute des messages aux `global_logs` sur les étapes (création venv, installation, lancement).
-            * **Correction :** Positionnement correct du décorateur `@app.post("/api/run_app")` juste avant la définition de la fonction `run_app` pour que FastAPI reconnaisse la route (résolvant le `404 Not Found`).
 
-    5.  `POST /api/stop_app` :
-        * **Rôle :** Arrête l'application PySide6 en cours si elle a été lancée par le backend.
-        * **Fonctionnement :** Utilise `pyside_app_process.terminate()` ou `pyside_app_process.kill()` si un processus est actif.
+  ### 3. FileExplorer (gauche IDE)
+- arborescence façon VS Code  
+- icônes dossier / fichier  
+- ouverture automatique dans l’éditeur
 
-    6.  `GET /api/get_logs` :
-        * **Rôle :** Fournit les messages stockés dans `global_logs` au frontend.
-        * **Fonctionnement :** Utilisé pour le mécanisme de polling permettant d'afficher la sortie du backend en temps réel dans le terminal du frontend.
+### 4. CodeEditor (droite)
+- **lecture seule**  
+- coloration syntaxique Python (CodeMirror)  
+- scrollbar fluide
 
-### b. Lancement du Backend
+### 5. TerminalSection (bas droite)
+- logs shell en temps réel  
+- affichage des erreurs PySide6  
+- scroll-lock / clear
 
-* Commande : `uvicorn main:app --reload --port 8000`
-* `--reload` : Permet au serveur de se recharger automatiquement à chaque modification du code source.
-* `--port 8000` : Définit le port sur lequel le backend écoute.
+---
 
-## 3. Développement du Frontend (React/Vite)
+## 🔄 Flux de vie
 
-Le frontend fournit l'interface utilisateur, envoie les requêtes au backend et affiche les résultats.
+1. **Utilisateur tape prompt**  
+   → App.tsx appelle `POST /api/projects/`
+2. **Backend crée dossier + venv + code**  
+   → retourne `project_id`
+3. **Frontend affiche fichiers & historique**
+4. **Bouton « Lancer »**  
+   → backend exécute `venv/bin/python main.py`
+5. **Si crash → `problem.json`**  
+   → bouton « Fix Bug » relance le LLM
+6. **Boucle de correction automatique**
 
-### a. Fichier `App.tsx` (Frontend)
-
-Ce fichier est le composant principal de l'application React.
-
-* **États React :**
-    * `prompt`, `llmResponse`, `terminalOutput`, `projectPath`, `mainPyRelativePath`, `isLoading`, `activeView`, `codeViewContent`.
-    * **Nouveau :** `isPollingLogs` : Un état booléen pour contrôler si le polling des logs est actif.
-
-* **Référence `terminalRef` :** Utilisé pour faire défiler automatiquement le terminal vers le bas.
-
-* **`useEffect` (Scroll automatique) :** Assure que le terminal défile pour toujours montrer les dernières lignes.
-
-* **`fetchLogs` (avec `useCallback`) :**
-    * Fonction asynchrone pour récupérer les logs via `GET /api/get_logs`.
-    * Utilisée pour mettre à jour `terminalOutput`.
-    * Enveloppée dans `useCallback` pour optimiser les performances lorsque cette fonction est une dépendance d'autres hooks.
-
-* **`useEffect` (Gestion du Polling) - **Correction Majeure** :**
-    * Ce hook est le cœur de l'optimisation des logs.
-    * Il démarre un `setInterval` pour appeler `fetchLogs` toutes les 500ms **uniquement si `isPollingLogs` est `true`**.
-    * Il s'exécute immédiatement (`fetchLogs()`) au démarrage du polling pour récupérer les premiers logs sans délai.
-    * Il nettoie l'intervalle (`clearInterval`) lorsque `isPollingLogs` passe à `false` ou lorsque le composant est démonté, évitant ainsi les requêtes inutiles.
-
-* **`handleGenerateApp` :**
-    * Appelé par le bouton "Générer Application PySide6".
-    * Réinitialise les états pertinents (`terminalOutput`, etc.).
-    * **Active le polling des logs (`setIsPollingLogs(true)`)** avant d'envoyer la requête `POST /api/generate`.
-    * Traite la réponse du backend, met à jour `llmResponse`, `projectPath`, etc.
-    * Appelle `POST /api/get_file_content` pour afficher le code généré dans l'interface.
-    * **Désactive le polling des logs (`setIsPollingLogs(false)`)** dans le bloc `finally`, une fois la génération et la lecture du fichier terminées.
-
-* **`handleRunApp` :**
-    * Appelé par le bouton "Preview" (qui sert à lancer l'app).
-    * Vérifie si un `projectPath` existe.
-    * **Active le polling des logs (`setIsPollingLogs(true)`)** avant d'envoyer la requête `POST /api/run_app`.
-    * Traite la réponse du backend.
-    * **Désactive le polling des logs (`setIsPollingLogs(false)`)** dans le bloc `finally`, une fois que le backend a signalé que l'application a été lancée (le backend ne génère plus de logs pour cette action à ce point, l'application s'exécutant dans son propre processus).
-
-* **Interface Utilisateur (JSX) :**
-    * Champ de prompt pour l'entrée utilisateur.
-    * Zone d'affichage pour la réponse du LLM.
-    * Boutons "Générer Application PySide6" et "Preview".
-    * Vues "Code" et "Preview" (l'application PySide6 apparaît dans une fenêtre séparée, le "Preview" dans le frontend est un placeholder).
-    * Zone de terminal pour afficher les logs du backend.
-
-### b. Lancement du Frontend
-
-* Commande : `npm run dev` (dans le dossier `app_maker_frontend/`).
-* Ouvre l'application dans le navigateur, généralement sur `http://localhost:5173/`.
-
-## 4. Flux de Travail Amélioré
-
-Avec ces modifications, le flux est le suivant :
-
-1.  L'utilisateur entre un prompt et clique sur "Générer".
-2.  Le frontend active le polling des logs.
-3.  Le backend travaille (génération du code, création de fichiers), et ses messages sont affichés en temps réel dans le terminal du frontend grâce au polling.
-4.  Une fois la génération terminée et le code de `main.py` affiché, le polling des logs s'arrête.
-5.  L'utilisateur clique sur "Preview" ("Run App").
-6.  Le frontend active à nouveau le polling des logs.
-7.  Le backend travaille (arrêt de l'ancienne app si présente, création du venv si nécessaire, installation de PySide6 si nécessaire, lancement de la nouvelle app PySide6), et ses messages sont affichés en temps réel.
-8.  Une fois que l'application PySide6 est lancée et que le backend a renvoyé la confirmation, le polling des logs s'arrête. L'application PySide6 s'exécute dans sa propre fenêtre séparée.
+---
