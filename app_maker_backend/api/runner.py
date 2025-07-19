@@ -20,18 +20,26 @@ class RunProjectRequest(BaseModel):
 @router.post("/runner/run", summary="Lance une application PySide6 pour un projet donné")
 async def run_project(request: RunProjectRequest, background_tasks: BackgroundTasks):
     """
-    Lance le fichier `main.py` d'un projet PySide6 donné.
+    Lance le fichier `main.py` (ou `run.py` si `main.py` n'est pas trouvé) d'un projet PySide6 donné.
     """
     add_log(f"Requête: Lancement de l'application pour le projet {request.project_id}")
     try:
         # Récupérer le chemin du projet
         project_path = _get_project_path(request.project_id) # Utiliser la fonction interne pour le chemin
 
-        if not os.path.exists(os.path.join(project_path, "main.py")):
-            raise HTTPException(status_code=404, detail=f"main.py non trouvé pour le projet {request.project_id}")
+        # Déterminer le fichier d'entrée. Prioriser main.py si présent, sinon run.py
+        entry_file = "main.py"
+        entry_file_path = os.path.join(project_path, entry_file)
+
+        if not os.path.exists(entry_file_path):
+            entry_file = "run.py" # Revenir à run.py si main.py n'existe pas
+            entry_file_path = os.path.join(project_path, entry_file)
+            if not os.path.exists(entry_file_path):
+                raise HTTPException(status_code=404, detail=f"{entry_file} non trouvé pour le projet {request.project_id}")
 
         # Exécuter l'application en arrière-plan
-        background_tasks.add_task(run_pyside_application, project_path)
+        # Passer le chemin complet du fichier d'entrée à run_pyside_application
+        background_tasks.add_task(run_pyside_application, project_path, entry_file)
         return {"message": f"Application PySide6 pour le projet {request.project_id} lancée en arrière-plan."}
     except ProjectNotFoundException as e:
         add_log(f"Projet non trouvé lors du lancement: {request.project_id} - {e}", level="WARNING")
@@ -48,8 +56,8 @@ async def stop_project():
     add_log("Requête: Arrêt de l'application PySide6.")
     try:
         # CORRECTION: Ajouter 'await' car stop_pyside_application est une coroutine
-        await stop_pyside_application() 
+        await stop_pyside_application()
         return {"message": "Application PySide6 arrêtée."}
     except Exception as e:
-        add_log(f"Erreur lors de l'arrêt de l'application: {e}", level="ERROR")
+        add_log(f"Erreur lors de l'arrêt de l'application PySide6: {e}", level="ERROR")
         raise HTTPException(status_code=500, detail=f"Erreur interne du serveur: {e}")

@@ -19,7 +19,7 @@ from core.project_manager import (
     _get_project_path
 )
 from core.logging_config import add_log
-from core.config import GEMINI_MODELS, OPENAI_MODELS, DEEPSEEK_MODELS
+from core.config import GEMINI_MODELS, OPENAI_MODELS, DEEPSEEK_MODELS, KIMI_MODELS
 
 router = APIRouter()
 
@@ -246,4 +246,5 @@ async def get_llm_options():
         "gemini": GEMINI_MODELS,
         "openai": OPENAI_MODELS,
         "deepseek": DEEPSEEK_MODELS,
+        "kimi": KIMI_MODELS,          
     }

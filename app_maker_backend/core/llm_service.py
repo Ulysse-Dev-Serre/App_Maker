@@ -4,11 +4,17 @@ import json
 from fastapi import HTTPException
 from dotenv import load_dotenv
 from typing import Dict, Any, List
-import fnmatch # Pour la correspondance de patterns de fichiers
+import fnmatch  # Pour la correspondance de patterns de fichiers
 
 from core.logging_config import add_log
 # Importer la nouvelle liste d'exclusions
-from core.config import GEMINI_API_KEY, OPENAI_API_KEY, DEEPSEEK_API_KEY, LLM_CONTEXT_EXCLUSIONS
+from core.config import (
+    GEMINI_API_KEY,
+    OPENAI_API_KEY,
+    DEEPSEEK_API_KEY,
+    KIMI_API_KEY,           # <-- AJOUT
+    LLM_CONTEXT_EXCLUSIONS
+)
 
 # Initialisation des clients LLM (conditionnelle)
 # Assurez-vous d'avoir installé les SDKs nécessaires :
@@ -35,6 +41,19 @@ try:
         add_log("OPENAI_API_KEY non définie. OpenAI sera indisponible.", level="WARNING")
 except Exception as e:
     add_log(f"Erreur lors de l'initialisation de OpenAI API: {e}. OpenAI sera indisponible.", level="ERROR")
+
+kimi_client = None  # <-- AJOUT
+try:
+    from openai import OpenAI as KimiOpenAI  # Ré-utiliser le client OpenAI pour Moonshot
+    if KIMI_API_KEY:
+        kimi_client = KimiOpenAI(
+            api_key=KIMI_API_KEY,
+            base_url="https://openrouter.ai/api/v1"
+        )
+    else:
+        add_log("KIMI_API_KEY non définie. Kimi sera indisponible.", level="WARNING")
+except Exception as e:
+    add_log(f"Erreur lors de l'initialisation de Kimi API: {e}. Kimi sera indisponible.", level="ERROR")
 
 #deepseek_client = None
 #try:
@@ -138,6 +157,7 @@ async def generate_pyside_code(
 
 
     # Logique conditionnelle pour appeler le bon LLM
+    # Logique conditionnelle pour appeler le bon LLM
     if llm_provider == "gemini":
         if not gemini_client_configured:
             raise HTTPException(status_code=500, detail="Gemini API non configurée ou clé manquante.")
@@ -197,17 +217,27 @@ async def generate_pyside_code(
             add_log(f"Erreur lors de l'appel à OpenAI LLM: {e}", level="ERROR")
             raise HTTPException(status_code=500, detail=f"Erreur du service LLM (OpenAI): {e}")
 
-    # elif llm_provider == "deepseek":
-    #     if not deepseek_client:
-    #         raise HTTPException(status_code=500, detail="DeepSeek API non configurée ou clé manquante.")
-    #     # TODO: Implémenter l'appel à DeepSeek ici
-    #     # messages_deepseek = [...]
-    #     # response = deepseek_client.chat.completions.create(...)
-    #     # generated_content = response.choices[0].message.content
-    #     # parsed_response = json.loads(generated_content)
-    #     # generated_files = parsed_response.get("files", {})
-    #     # add_log(f"Réponse brute du LLM DeepSeek (premières 200 lettres): '{generated_content[:200]}'")
-    #     raise HTTPException(status_code=501, detail="DeepSeek LLM non implémenté.")
+    elif llm_provider == "kimi":
+        if not kimi_client:
+            raise HTTPException(status_code=500, detail="Kimi API non configurée ou clé manquante.")
+
+        messages_kimi = [
+            {"role": "system", "content": system_instruction},
+            {"role": "user", "content": user_prompt_content}
+        ]
+
+        try:
+            response = kimi_client.chat.completions.create(
+                model=model_name,
+                messages=messages_kimi,
+                response_format={"type": "json_object"}
+            )
+            generated_content = response.choices[0].message.content
+            parsed_response = json.loads(generated_content)
+            generated_files = parsed_response.get("files", {})
+        except Exception as e:
+            add_log(f"Erreur lors de l'appel à Kimi LLM: {e}", level="ERROR")
+            raise HTTPException(status_code=500, detail=f"Erreur du service LLM (Kimi): {e}")
 
     else:
         raise HTTPException(status_code=400, detail=f"Fournisseur LLM '{llm_provider}' non supporté.")

@@ -5,10 +5,10 @@ import sys
 import asyncio
 import json
 import re # Pour les expressions régulières
-from datetime import datetime # AJOUTER CETTE LIGNE
+from datetime import datetime 
 from fastapi import HTTPException
 from core.logging_config import add_log
-from core.project_manager import save_project_problem, clear_project_problem # Import des nouvelles fonctions
+from core.project_manager import save_project_problem, clear_project_problem 
 
 # Variable globale pour stocker le processus de l'application PySide6
 pyside_app_process = None
@@ -83,6 +83,24 @@ async def run_pyside_application(project_path_absolute: str):
         add_log(error_message, level="ERROR")
         save_project_problem(project_id, {"type": "pyside6_missing", "message": error_message})
         raise HTTPException(status_code=500, detail=error_message)
+
+    # NOUVELLE SECTION: Vérifier et installer les dépendances de requirements.txt
+    requirements_file_path = os.path.join(project_path_absolute, "requirements.txt")
+    if os.path.exists(requirements_file_path):
+        add_log(f"Fichier requirements.txt trouvé. Installation des dépendances...", level="INFO")
+        pip_executable = os.path.join(venv_path, "bin", "pip") if sys.platform != "win32" else os.path.join(venv_path, "Scripts", "pip.exe")
+        try:
+            install_command = [pip_executable, "install", "-r", requirements_file_path]
+            add_log(f"Exécution de la commande : {' '.join(install_command)}", level="INFO")
+            subprocess.run(install_command, check=True, capture_output=True, text=True)
+            add_log("Dépendances de requirements.txt installées avec succès.", level="INFO")
+        except subprocess.CalledProcessError as e:
+            error_message = f"Erreur lors de l'installation des dépendances de requirements.txt: {e.stderr}"
+            add_log(error_message, level="ERROR")
+            save_project_problem(project_id, {"type": "requirements_install_error", "message": error_message, "details": e.stderr})
+            raise HTTPException(status_code=500, detail=error_message)
+    else:
+        add_log("Pas de fichier requirements.txt trouvé. Poursuite sans installation de dépendances supplémentaires.", level="INFO")
 
     if not os.path.exists(main_py_full_path):
         error_message = f"main.py non trouvé dans le chemin du projet: {main_py_full_path}"

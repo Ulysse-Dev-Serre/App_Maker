@@ -1,22 +1,33 @@
-
-L’objectif principal de cette application est de fournir à l’utilisateur un outil interactif pour générer, visualiser, exécuter et déboguer des applications de bureau PySide6 en utilisant des modèles de langage (LLM). L’utilisateur interagit principalement via des prompts textuels et des boutons d’action.
+"Ce projet est un outil interactif conçu pour générer, visualiser, exécuter et déboguer des applications de bureau PySide6 à l'aide de modèles de langage (LLM). L'utilisateur interagit principalement via des prompts textuels et des boutons d'action. Notre travail se concentre sur le développement de cet outil innovant, dont le frontend est bâti avec React 18 + TypeScript + Tailwind CSS et le backend avec FastAPI (Python 3.11)."
 
 L’application se veut un outil où l’utilisateur peut :
+- Décrire l’application PySide6 souhaitée via un prompt."
 
--Décrire l’application PySide6 souhaitée via un prompt.
--Voir le code généré par le LLM dans un IDE simplifié.
--Lancer et arrêter l’application PySide6 générée.
--Visualiser les fichiers du projet dans une arborescence.
--Consulter l’historique de ses interactions (prompts et réponses du LLM).
--Voir les logs d’exécution du backend et de l’application PySide6.
--Identifier et potentiellement résoudre les problèmes rencontrés par l’application générée.
-Architecture Technique de l’Application
+- Voir le code généré par le LLM dans un IDE simplifié."
 
-L’application est divisée en deux parties principales :
-Frontend   | React 18 + TypeScript + Tailwind CSS
-Backend    | FastAPI (Python 3.11) 
+- Lancer et arrêter l’application PySide6 générée."
+
+- Visualiser les fichiers du projet dans une arborescence."
+
+- Consulter l’historique de ses interactions (prompts et réponses du LLM)."
+
+- Voir les logs d’exécution du backend et de l’application PySide6."
+
+- Identifier et potentiellement résoudre les problèmes rencontrés par l’application générée.
+
+
+## Architecture Technique de l'Outil
+
+L'outil est une application full-stack robuste, divisée en deux parties principales qui interagissent pour offrir une expérience fluide :
+
+* **Frontend :** Développé avec **React 18**, **TypeScript** et **Tailwind CSS**, cette interface utilisateur permet une interaction intuitive avec le LLM et la gestion des projets PySide6 générés.
+* **Backend :** Construit avec **FastAPI (Python 3.11)**, il gère la logique métier, l'interaction avec le LLM, la gestion des fichiers de projet et l'exécution des applications PySide6.
+
 
 ## 📁 Arborescence du projet
+L’application est divisée en deux parties principales :
+Frontend   | React 18 + TypeScript + Tailwind CSS
+Backend    | FastAPI (Python 3.11)
 ```text
 ├── app_maker_backend
 │   ├── api
@@ -136,17 +147,15 @@ Backend    | FastAPI (Python 3.11)
 
 ---
 
-## 🔄 Flux de vie
+## 🔄 Flux de vie de l'Outil
 
-1. **Utilisateur tape prompt**  
-   → App.tsx appelle `POST /api/projects/`
-2. **Backend crée dossier + venv + code**  
-   → retourne `project_id`
-3. **Frontend affiche fichiers & historique**
-4. **Bouton « Lancer »**  
-   → backend exécute `venv/bin/python main.py`
-5. **Si crash → `problem.json`**  
-   → bouton « Fix Bug » relance le LLM
-6. **Boucle de correction automatique**
+Voici comment l'outil gère les interactions de l'utilisateur :
+
+1.  **Saisie du prompt :** L'utilisateur décrit l'application PySide6 souhaitée via le `PromptSection`. Le frontend (`App.tsx`) déclenche un appel `POST` vers `/api/projects/` sur le backend.
+2.  **Création du projet :** Le backend crée un nouveau dossier de projet, configure un environnement virtuel (venv) et génère le code initial de l'application PySide6. Il retourne ensuite un `project_id` unique.
+3.  **Affichage de l'état du projet :** Le frontend met à jour l'interface pour afficher les fichiers générés dans l'`FileExplorer` et l'historique des interactions dans le `ProjectHistoryDisplay`.
+4.  **Exécution de l'application :** Lorsque l'utilisateur clique sur "Lancer", le backend exécute l'application PySide6 générée via `venv/bin/python main.py`.
+5.  **Gestion des erreurs :** Si l'application PySide6 générée plante, un fichier `problem.json` est créé. Le bouton "Fix Bug" permet alors de relancer le LLM pour tenter une correction.
+6.  **Boucle de correction :** Ce processus peut se répéter pour permettre une résolution itérative des problèmes via le LLM.
 
 ---

@@ -2,7 +2,7 @@ import os
 import shutil
 import json
 import uuid
-from typing import Dict, Any, List, Optional # AJOUTER Optional ICI
+from typing import Dict, Any, List, Optional
 from datetime import datetime
 
 from core.config import BASE_PROJECTS_DIR
@@ -28,11 +28,15 @@ def create_new_project(initial_prompt: str, files_content: Dict[str, str]) -> st
     """
     project_id = str(uuid.uuid4())
     project_path = _get_project_path(project_id)
-    os.makedirs(project_path, exist_ok=True)
+    os.makedirs(project_path, exist_ok=True) # Crée le répertoire principal du projet
     add_log(f"Création d'un nouveau projet: {project_id} dans {project_path}")
 
     for file_name, content in files_content.items():
         file_path = os.path.join(project_path, file_name)
+        
+        # Crée tous les répertoires parents si ils n'existent pas
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
+        
         with open(file_path, "w", encoding="utf-8") as f:
             f.write(content)
         add_log(f"Fichier sauvegardé: {file_name} pour le projet {project_id}")
@@ -65,6 +69,8 @@ def update_project_files(project_id: str, new_files_content: Dict[str, str], pro
 
     for file_name, content in new_files_content.items():
         file_path = os.path.join(project_path, file_name)
+        # Crée tous les répertoires parents si ils n'existent pas
+        os.makedirs(os.path.dirname(file_path), exist_ok=True) # Assure que les sous-dossiers existent
         with open(file_path, "w", encoding="utf-8") as f:
             f.write(content)
         add_log(f"Fichier mis à jour: {file_name} pour le projet {project_id}")
@@ -114,7 +120,10 @@ def delete_project(project_id: str):
         raise ProjectNotFoundException(f"Projet avec l'ID {project_id} non trouvé.")
 
 def list_all_projects() -> List[Dict[str, Any]]:
-    """Liste tous les projets disponibles avec leur ID et leur nom."""
+    """
+    Liste tous les projets disponibles avec leur ID et leur nom.
+    Gère les cas où l'historique est manquant ou corrompu.
+    """
     projects_list = []
     for project_id in os.listdir(BASE_PROJECTS_DIR):
         project_path = _get_project_path(project_id)
@@ -123,9 +132,15 @@ def list_all_projects() -> List[Dict[str, Any]]:
                 history = get_project_history(project_id)
                 project_name = history.get("project_name", "Projet sans nom")
                 projects_list.append({"project_id": project_id, "name": project_name})
-            except (FileNotFoundError, json.JSONDecodeError):
-                add_log(f"Historique du projet {project_id} introuvable ou corrompu, ajout avec un nom par défaut.", level="WARNING")
-                projects_list.append({"project_id": project_id, "name": f"Projet {project_id[:8]}..."})
+            except (ProjectNotFoundException, json.JSONDecodeError) as e:
+                # Si l'historique est manquant ou corrompu, on ajoute quand même le projet
+                # avec un nom par défaut et on log un avertissement.
+                add_log(f"Historique du projet {project_id} introuvable ou corrompu ({e}), ajout avec un nom par défaut.", level="WARNING")
+                projects_list.append({"project_id": project_id, "name": f"Projet Corrompu ({project_id[:8]})"})
+            except Exception as e:
+                # Gérer toute autre exception inattendue lors du chargement de l'historique
+                add_log(f"Erreur inattendue lors du chargement de l'historique pour le projet {project_id}: {e}", level="ERROR")
+                projects_list.append({"project_id": project_id, "name": f"Projet Erreur ({project_id[:8]})"})
     return projects_list
 
 def rename_project(project_id: str, new_name: str):
@@ -146,6 +161,8 @@ def save_project_history(project_id: str, history: Dict[str, Any]):
     """Sauvegarde l'historique d'un projet dans un fichier JSON."""
     history_path = _get_history_file_path(project_id)
     try:
+        # Assurer que le répertoire existe avant de sauvegarder l'historique
+        os.makedirs(os.path.dirname(history_path), exist_ok=True) 
         with open(history_path, "w", encoding="utf-8") as f:
             json.dump(history, f, indent=4, ensure_ascii=False)
         add_log(f"Historique du projet {project_id} sauvegardé.", level="INFO")
@@ -165,7 +182,7 @@ def get_project_history(project_id: str) -> Dict[str, Any]:
         return history
     except json.JSONDecodeError as e:
         add_log(f"Erreur de décodage JSON pour l'historique du projet {project_id}: {e}. Le fichier sera considéré comme vide.", level="ERROR")
-        raise
+        raise json.JSONDecodeError(f"Fichier history.json corrompu pour le projet {project_id}: {e}", doc=e.doc, pos=e.pos)
     except Exception as e:
         add_log(f"Erreur inattendue lors du chargement de l'historique pour {project_id}: {e}", level="ERROR")
         raise
@@ -180,6 +197,8 @@ def save_project_problem(project_id: str, problem_data: Dict[str, Any]):
     """Sauvegarde les données d'un problème pour un projet dans problem.json."""
     problem_path = _get_problem_file_path(project_id)
     try:
+        # Assurer que le répertoire existe avant de sauvegarder le problème
+        os.makedirs(os.path.dirname(problem_path), exist_ok=True)
         with open(problem_path, "w", encoding="utf-8") as f:
             json.dump(problem_data, f, indent=4, ensure_ascii=False)
         add_log(f"Problème enregistré pour le projet {project_id}.", level="INFO")
