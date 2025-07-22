@@ -99,6 +99,9 @@ async def generate_pyside_code(
     7.  Ne pas inclure de texte explicatif ou de markdown en dehors du bloc JSON.
     8.  Utilisez un formatage de code Python propre et idiomatique.
     9.  Soyez concis et ne générez que les fichiers nécessaires.
+    10. Si le fichier que tu génères est le point d’entrée de l’application (celui qui contient
+    `if __name__ == "__main__":`), place impérativement en **première ligne** le commentaire :
+    # ENTRYPOINT
 
     **Exemple de format de réponse (JSON valide):**
     ```json
