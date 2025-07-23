@@ -99,9 +99,11 @@ async def generate_pyside_code(
     7.  Ne pas inclure de texte explicatif ou de markdown en dehors du bloc JSON.
     8.  Utilisez un formatage de code Python propre et idiomatique.
     9.  Soyez concis et ne générez que les fichiers nécessaires.
-    10. Si le fichier que tu génères est le point d’entrée de l’application (celui qui contient
-    `if __name__ == "__main__":`), place impérativement en **première ligne** le commentaire :
+    10. Si le fichier est le point d’entrée, place **exactement** en première ligne (sans espace ni caractère supplémentaire) :
     # ENTRYPOINT
+    11. Pour charger des ressources externes (style.qss, icônes, etc.), utilise **toujours** des chemins relatifs au script :
+    with open(os.path.join(os.path.dirname(__file__), "style.qss"), "r", encoding="utf-8") as f:
+        app.setStyleSheet(f.read())
 
     **Exemple de format de réponse (JSON valide):**
     ```json

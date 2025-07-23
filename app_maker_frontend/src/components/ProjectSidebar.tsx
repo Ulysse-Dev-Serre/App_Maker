@@ -1,7 +1,10 @@
+// ProjectSidebar.tsx
 import React, { useState } from 'react';
 import { Pencil, Save, X, Trash2, Folder, FolderOpen } from 'lucide-react';
-const apiFetch = (endpoint: string, init?: RequestInit) =>
-  fetch(`http://127.0.0.1:8000${endpoint}`, init);
+
+// Supprimez cette ligne car la fonction apiFetch locale ne sera plus utilisée pour la suppression.
+// const apiFetch = (endpoint: string, init?: RequestInit) =>
+//   fetch(`http://127.0.0.1:8000${endpoint}`, init);
 
 interface ProjectInfo {
   project_id: string;
@@ -15,6 +18,10 @@ interface Props {
   onClose: () => void;
   loading: boolean;
   isVisible: boolean;
+  fetchProjects: () => Promise<void>;
+  // Ajoutez les props pour le renommage et la suppression depuis les hooks
+  onProjectRename: (id: string, newName: string) => Promise<void>;
+  onProjectDelete: (id: string) => Promise<void>; // Assurez-vous que cette prop est bien reçue
 }
 
 export default function ProjectSidebar({
@@ -24,6 +31,9 @@ export default function ProjectSidebar({
   onClose,
   loading,
   isVisible,
+  fetchProjects, // Gardez cette prop si elle est utilisée ailleurs pour rafraîchir explicitement
+  onProjectRename, // Ajoutez cette prop
+  onProjectDelete, // Ajoutez cette prop
 }: Props) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draftName, setDraftName] = useState('');
@@ -40,17 +50,17 @@ export default function ProjectSidebar({
 
   const confirmRename = async (id: string) => {
     if (!draftName.trim()) return;
-    await apiFetch(`/api/projects/${id}/rename`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ new_name: draftName.trim() }),
-    });
+    // Utilisez la prop onProjectRename
+    await onProjectRename(id, draftName.trim());
     cancelRename();
+    // fetchProjects() est déjà appelé dans onProjectRename (via useProjects.handleProjectRename)
   };
 
   const confirmDelete = async (id: string) => {
     if (!window.confirm('Supprimer ce projet ?')) return;
-    await apiFetch(`/api/projects/${id}`, { method: 'DELETE' });
+    // Utilisez la prop onProjectDelete
+    await onProjectDelete(id); // Ceci appellera handleProjectDelete de useProjects
+    // fetchProjects() est déjà appelé dans onProjectDelete (via useProjects.handleProjectDelete)
   };
 
   return (

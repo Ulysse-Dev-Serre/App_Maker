@@ -61,6 +61,7 @@ export const useAppActions = ({
     body: body ? JSON.stringify(body) : undefined,
   });
 
+
   const handleGenerateApp = useCallback(async (event: React.FormEvent) => {
     event.preventDefault();
     setLoading(true);
@@ -68,6 +69,9 @@ export const useAppActions = ({
     setProjectFiles({});
     setProjectId(null);
     setSelectedFileName(null);
+
+
+
 
     try {
       const response = await fetch('http://127.0.0.1:8000/api/projects/',
@@ -137,35 +141,46 @@ export const useAppActions = ({
     }
   }, [projectId, prompt, selectedLlmProvider, selectedModel, setProjectFiles, setSelectedFileName, fetchProblemStatus]);
 
+
+
+
+  
+
   const handleRunApp = useCallback(async () => {
     if (!projectId) {
-      setError("Aucun projet sélectionné pour l'exécution.");
+      console.log("handleRunApp: Pas de projectId, annulation."); // NOUVEAU LOG
       return;
     }
     setLoading(true);
     setError(null);
-
     try {
-      const response = await fetch('http://127.0.0.1:8000/api/runner/run',
-        commonFetchOptions('POST', { project_id: projectId })
-      );
+      console.log(`handleRunApp: Tentative de lancement de l'application pour le projet ${projectId}`); // NOUVEAU LOG
+      const response = await fetch(`http://127.0.0.1:8000/api/runner/run`, commonFetchOptions('POST', { project_id: projectId }));
+
       if (response.ok) {
-        // NOUVEAU: Ajouter un délai avant de vérifier le statut du problème
-        // Cela donne le temps à l'application PySide6 de crasher et d'écrire dans problem.json
-        setTimeout(async () => {
-          await fetchProblemStatus(projectId);
-        }, 3000); // Attendre 3 secondes (peut être ajusté si nécessaire)
+        console.log("handleRunApp: Application lancée avec succès, attente de 5 secondes..."); // NOUVEAU LOG
+        // Attendre 5 secondes pour laisser le temps au backend de créer problem.json si l'app crashe
+        await new Promise(resolve => setTimeout(resolve, 5000));
+        console.log("handleRunApp: Attente de 5 secondes terminée, récupération du statut du problème..."); // NOUVEAU LOG
+        await fetchProblemStatus(projectId);
+        alert("Application lancée.");
       } else {
         const errorData = await response.json();
         setError(`Erreur lors du lancement de l'application: ${errorData.detail || response.statusText}`);
+        console.error(`handleRunApp: Erreur lors du lancement de l'application:`, errorData); // NOUVEAU LOG
       }
     } catch (err) {
-      console.error('Erreur réseau lors du lancement de l\'application:', err);
+      console.error('handleRunApp: Erreur réseau lors du lancement de l\'application:', err); // NOUVEAU LOG
       setError(`Erreur réseau: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setLoading(false);
     }
   }, [projectId, fetchProblemStatus]);
+
+
+
+
+
 
   const handleStopApp = useCallback(async () => {
     if (!projectId) {

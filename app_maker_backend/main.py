@@ -2,14 +2,21 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import os
+from contextlib import asynccontextmanager
+from core.app_runner import stop_pyside_application  # coroutine de nettoyage
 
-# Imports des modules qui contiennent les routeurs
-from api import projects, files, runner, log # Assure-toi que log est importé ici
+# Imports des routeurs
+from api import projects, files, runner, log
 
 from dotenv import load_dotenv
 load_dotenv()
 
-app = FastAPI()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    yield  # démarrage
+    await stop_pyside_application()  # arrêt / Ctrl-C
+
+app = FastAPI(lifespan=lifespan)
 
 origins = [
     "http://localhost",
@@ -25,12 +32,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Inclure les routeurs des modules importés
-# C'EST ICI LA CLÉ : AJOUTE prefix="/api" À CHAQUE ROUTEUR SAUF CELUI DE LOGS (QUI L'A DÉJÀ INTERNEMENT)
-app.include_router(projects.router, prefix="/api") # <--- Assure-toi que cette ligne est correcte !
-app.include_router(files.router, prefix="/api")    # <--- Ajoute ceci aussi si ce n'est pas fait
-app.include_router(runner.router, prefix="/api")   # <--- Ajoute ceci aussi si ce n'est pas fait
-app.include_router(log.router)                     # <--- Ici, PAS de prefix="/api", car log.py l'a déjà !
+# Montage des routeurs
+app.include_router(projects.router, prefix="/api")
+app.include_router(files.router,   prefix="/api")
+app.include_router(runner.router,  prefix="/api")
+app.include_router(log.router)     # déjà prefix="/api" interne
 
 @app.get("/")
 async def read_root():

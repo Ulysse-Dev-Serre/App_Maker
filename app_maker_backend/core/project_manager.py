@@ -193,6 +193,10 @@ def _get_problem_file_path(project_id: str) -> str:
     """Retourne le chemin complet du fichier problem.json d'un projet."""
     return os.path.join(_get_project_path(project_id), "problem.json")
 
+
+
+
+
 def save_project_problem(project_id: str, problem_data: Dict[str, Any]):
     """Sauvegarde les données d'un problème pour un projet dans problem.json."""
     problem_path = _get_problem_file_path(project_id)
@@ -205,23 +209,42 @@ def save_project_problem(project_id: str, problem_data: Dict[str, Any]):
     except Exception as e:
         add_log(f"Erreur lors de la sauvegarde du problème pour {project_id}: {e}", level="ERROR")
 
+
+
+
+
+
+
+
 def get_project_problem(project_id: str) -> Optional[Dict[str, Any]]:
     """Charge les données d'un problème pour un projet depuis problem.json."""
     problem_path = _get_problem_file_path(project_id)
+    add_log(f"DEBUG: Tente de charger problem.json pour projet {project_id}. Chemin attendu: {problem_path}", level="DEBUG")
+
     if not os.path.exists(problem_path):
+        add_log(f"DEBUG: problem.json NON trouvé à {problem_path}. Retourne None.", level="DEBUG")
         return None # Pas de problème enregistré
+    
+    add_log(f"DEBUG: problem.json trouvé à {problem_path}. Tente de lire.", level="DEBUG")
     try:
         with open(problem_path, "r", encoding="utf-8") as f:
             problem = json.load(f)
-        add_log(f"Problème chargé pour le projet {project_id}.", level="INFO")
+        add_log(f"DEBUG: Problème chargé pour le projet {project_id}. Contenu: {problem}", level="INFO") # Log le contenu pour être sûr
         return problem
     except json.JSONDecodeError as e:
-        add_log(f"Erreur de décodage JSON pour problem.json du projet {project_id}: {e}. Le fichier sera considéré comme vide.", level="ERROR")
+        add_log(f"DEBUG: Erreur de décodage JSON pour problem.json du projet {project_id}: {e}. Le fichier sera considéré comme vide.", level="ERROR")
         clear_project_problem(project_id) # Effacer le fichier corrompu
         return None
     except Exception as e:
-        add_log(f"Erreur inattendue lors du chargement de problem.json pour {project_id}: {e}", level="ERROR")
+        add_log(f"DEBUG: Erreur inattendue lors du chargement de problem.json pour {project_id}: {e}", level="ERROR")
         return None
+
+
+
+
+
+
+
 
 def clear_project_problem(project_id: str):
     """Supprime le fichier problem.json pour un projet."""

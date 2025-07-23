@@ -19,7 +19,7 @@ formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 # Configurer le logger principal
 # Le niveau global peut être INFO, DEBUG, WARNING, ERROR, CRITICAL
 logger = logging.getLogger('app_maker_logger')
-logger.setLevel(logging.INFO) # Niveau par défaut pour la console et le fichier
+logger.setLevel(logging.DEBUG) # Niveau par défaut pour la console et le fichier
 
 # Empêche la propagation aux handlers racines, évitant les logs en double sur la console
 logger.propagate = False
